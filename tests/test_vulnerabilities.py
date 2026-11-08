@@ -1,4 +1,5 @@
 """Testes de regressão das vulnerabilidades encontradas (ver docs/VULNERABILIDADES.md)."""
+import base64
 import json
 import os
 import threading
@@ -10,13 +11,15 @@ from unittest import mock
 
 from pura.monitor import TrafficMonitor
 from pura.security import ReplayGuard, WeakSecretError, load_secret, sign, timestamp_ok
-from pura.server import State, make_server
+from pura.server import BoundedThreadingHTTPServer, State, make_handler, make_server
 
 SECRET = b"segredo-de-teste-com-mais-de-16"
 
 
-def request(port, path, body=None, sig=None, method=None):
-    headers = {"X-Signature": sig} if sig is not None else {}
+def request(port, path, body=None, sig=None, method=None, headers=None):
+    headers = dict(headers or {})
+    if sig is not None:
+        headers["X-Signature"] = sig
     req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=body, headers=headers,
                                  method=method or ("POST" if body is not None else "GET"))
     try:
@@ -60,6 +63,18 @@ class Vuln001Replay(ServerHarness):
         self.assertEqual(request(self.port, "/telemetry", a1, sign(SECRET, a1))[0], 409)
         self.assertEqual(self.state.counters["replay"], 1)
         self.assertIn("REPLAY", [a.kind for a in self.state.monitor.alerts])
+
+
+class ReplayCapacity(ServerHarness):
+    def test_gateway_recusa_novo_no_quando_capacidade_anti_replay_acaba(self):
+        self.start()
+        self.state.replay = ReplayGuard(max_nodes=1)
+        first = msg(1, 1, node="S1")
+        second = msg(1, 1, node="S2")
+        self.assertEqual(request(self.port, "/telemetry", first, sign(SECRET, first))[0], 200)
+        self.assertEqual(request(self.port, "/telemetry", second, sign(SECRET, second))[0], 503)
+        self.assertEqual(self.state.counters["capacity_rejected"], 1)
+        self.assertFalse(self.state.replay.accept("S1", 1, 1))
 
 
 class Vuln002SegredoFraco(unittest.TestCase):
@@ -144,6 +159,9 @@ class Vuln006ReplayAposReinicio(ServerHarness):
         self.assertFalse(timestamp_ok(now - 3600, now, required=False))    # se existe, sempre é validado
         self.assertFalse(timestamp_ok("agora", now, required=True))
         self.assertFalse(timestamp_ok(True, now, required=True))
+        self.assertFalse(timestamp_ok(float("nan"), now, required=True))
+        self.assertFalse(timestamp_ok(float("inf"), now, required=True))
+        self.assertFalse(timestamp_ok(now, now, required=True, window_s=float("nan")))
 
     def test_replay_apos_reinicio_do_gateway_e_barrado(self):
         with mock.patch.dict(os.environ, {"PURA_REQUIRE_TS": "1"}):
@@ -174,14 +192,112 @@ class Vuln007ComandoAmarradoAoNo(ServerHarness):
     """Segredo único compartilhado: um comando assinado para S2 também seria válido para S1.
     O gateway amarra o nó ao corpo assinado; o firmware confere `node` antes de acionar o relé."""
 
-    def test_comando_assinado_carrega_o_no_destino(self):
+    def test_comando_assinado_carrega_no_nonce_e_sequencia(self):
         self.start()
         for node in ("S1", "S2"):
-            with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/control?node={node}", timeout=3) as r:
-                body, sig = r.read(), r.headers["X-Signature"]
-            self.assertEqual(json.loads(body)["node"], node)
+            self.state.policy.update(node, 500, 25)
+            nonce = "0011223344556677"
+            request_message = f"GET\n/control\n{node}\n{nonce}".encode()
+            headers = {"X-Request-Signature": sign(SECRET, request_message)}
+            status, _ = request(self.port, f"/control?node={node}&nonce={nonce}", headers=headers)
+            self.assertEqual(status, 200)
+            with urllib.request.urlopen(urllib.request.Request(
+                    f"http://127.0.0.1:{self.port}/control?node={node}&nonce={nonce}",
+                    headers=headers), timeout=3) as response:
+                body = response.read()
+                sig = response.headers["X-Signature"]
+            data = json.loads(body)
+            self.assertEqual(data["node"], node)
+            self.assertEqual(data["nonce"], nonce)
+            self.assertGreater(data["cseq"], 0)
             self.assertEqual(sig, sign(SECRET, body))
-            self.assertIn(f'"node":"{node}"'.encode(), body)    # é o que o firmware procura
+
+    def test_comando_rejeita_requisicao_sem_hmac_ou_nonce_invalido(self):
+        self.start()
+        self.state.policy.update("S1", 500, 25)
+        self.assertEqual(request(self.port, "/control?node=S1&nonce=0011223344556677")[0], 401)
+        nonce = "0011223344556677"
+        headers = {"X-Request-Signature": sign(SECRET, b"GET\n/control\nS1\n" + nonce.encode())}
+        self.assertEqual(request(self.port, "/control?node=S1&nonce=invalid", headers=headers)[0], 400)
+
+
+class TelemetryValidationTests(ServerHarness):
+    def test_rejeita_string_no_campo_numerico_assinado(self):
+        self.start()
+        body = json.dumps({"node": "S1", "boot": 1, "seq": 1,
+                           "t": 25, "h": 50, "ppm": "valor_invalido"}).encode()
+        self.assertEqual(request(self.port, "/telemetry", body, sign(SECRET, body))[0], 400)
+        self.assertNotIn("S1", self.state.policy.fan)
+
+    def test_rejeita_nan_e_uint32_invalido(self):
+        self.start()
+        for payload in (
+            {"node": "S1", "boot": 1, "seq": 1, "t": 25, "h": 50, "ppm": float("nan")},
+            {"node": "S1", "boot": -1, "seq": 2, "t": 25, "h": 50, "ppm": 500},
+            {"node": "S1", "boot": 1, "seq": True, "t": 25, "h": 50, "ppm": 500},
+            {"node": "../bad", "boot": 1, "seq": 3, "t": 25, "h": 50, "ppm": 500},
+        ):
+            body = json.dumps(payload).encode()
+            self.assertEqual(request(self.port, "/telemetry", body, sign(SECRET, body))[0], 400)
+        self.assertEqual(self.state.counters["accepted"], 0)
+
+
+class DashboardAuthTests(ServerHarness):
+    def test_dashboard_e_api_exigem_basic_auth_quando_configurado(self):
+        password = "dashboard-secret-com-mais-de-16"
+        with mock.patch.dict(os.environ, {"PURA_DASHBOARD_PASSWORD": password}, clear=True):
+            self.start()
+            self.assertEqual(request(self.port, "/api/telemetry")[0], 401)
+            token = base64.b64encode(f"pura:{password}".encode()).decode()
+            headers = {"Authorization": f"Basic {token}"}
+            self.assertEqual(request(self.port, "/api/telemetry", headers=headers)[0], 200)
+            self.assertEqual(request(self.port, "/healthz")[0], 200)
+
+    def test_bind_externo_exige_senha_forte(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ValueError):
+                make_server("0.0.0.0", 0, State(SECRET))
+        with mock.patch.dict(os.environ, {"PURA_DASHBOARD_PASSWORD": "short"}, clear=True):
+            with self.assertRaises(ValueError):
+                make_server("0.0.0.0", 0, State(SECRET))
+        with mock.patch.dict(os.environ, {"PURA_DASHBOARD_PASSWORD": "dashboard-secret-com-mais-de-16"}, clear=True):
+            server, _ = make_server("0.0.0.0", 0, State(SECRET))
+            server.server_close()
+
+
+class ServerResourceLimitTests(ServerHarness):
+    def test_endpoints_de_leitura_entram_no_monitoramento_de_flood(self):
+        self.start(TrafficMonitor(flood_limit=4, block_s=60))
+        statuses = [request(self.port, "/api/alerts")[0] for _ in range(7)]
+        self.assertIn(429, statuses)
+        self.assertIn("FLOOD", [alert.kind for alert in self.state.monitor.alerts])
+
+    def test_servidor_recusa_exceder_limite_de_workers(self):
+        handler = make_handler(State(SECRET))
+        server = BoundedThreadingHTTPServer(("127.0.0.1", 0), handler, max_workers=1)
+        try:
+            self.assertTrue(server._worker_slots.acquire(blocking=False))
+            self.assertFalse(server._worker_slots.acquire(blocking=False))
+            server._worker_slots.release()
+        finally:
+            server.server_close()
+
+    def test_peer_nao_confiavel_nao_pode_injetar_x_forwarded_for(self):
+        with mock.patch.dict(os.environ, {
+            "TRUST_PROXY": "1", "PROXY_HOPS": "1",
+            "PURA_TRUSTED_PROXY_CIDRS": "203.0.113.0/24"
+        }):
+            self.start(TrafficMonitor(flood_limit=5, block_s=60))
+            for _ in range(7):
+                self._request = urllib.request.Request(
+                    f"http://127.0.0.1:{self.port}/api/alerts",
+                    headers={"X-Forwarded-For": "203.0.113.7"})
+                try:
+                    urllib.request.urlopen(self._request, timeout=3).read()
+                except urllib.error.HTTPError:
+                    pass
+        self.assertTrue(self.state.monitor.is_blocked("127.0.0.1"))
+        self.assertFalse(self.state.monitor.is_blocked("203.0.113.7"))
 
 
 class Hardening(ServerHarness):
@@ -204,7 +320,7 @@ class Hardening(ServerHarness):
         self.start()
         for path in ("/fan?on=1", "/relay", "/api/fan", "/control?node=S1&fan=1"):
             status, _ = request(self.port, path, method="POST", body=b"{}")
-            self.assertIn(status, (400, 401, 404))
+            self.assertIn(status, (400, 401, 403, 404))
         # GET /control só devolve estado; o ventilador segue desligado
         self.assertFalse(self.state.policy.fan.get("S1", False))
 

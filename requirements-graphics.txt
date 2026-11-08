@@ -1,0 +1,3 @@
+# Dependências opcionais para gerar os gráficos PNG dos experimentos.
+-r requirements.txt
+matplotlib>=3.7

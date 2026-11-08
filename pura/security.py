@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 import os
 import threading
 from collections import OrderedDict
@@ -19,11 +20,17 @@ from typing import Dict
 
 MIN_SECRET_LEN = 16
 MAX_BOOTS_PER_NODE = 256
+MAX_REPLAY_NODES = 1024
 DEFAULT_TS_WINDOW_S = 120
 
 
 class WeakSecretError(RuntimeError):
     pass
+
+
+class ReplayCapacityError(RuntimeError):
+    """O limite seguro de nós rastreados foi atingido; novas identidades são recusadas."""
+
 
 
 def load_secret() -> bytes:
@@ -55,19 +62,35 @@ def verify(secret: bytes, body: bytes, signature: str) -> bool:
 class ReplayGuard:
     """Rejeita qualquer (boot, seq) já visto ou anterior ao último seq daquele boot.
 
-    Guarda o maior seq de CADA boot (não só do último), então reenviar uma mensagem
-    capturada de um boot antigo é rejeitado (corrige VULN-001). Um boot novo é aceito,
+    Guarda o maior seq dos últimos boots registrados (até MAX_BOOTS_PER_NODE por nó),
+    então replay de boots retidos é rejeitado (corrige VULN-001). Um boot novo é aceito,
     pois só o dono do segredo consegue assinar uma mensagem inédita.
     Risco residual: mensagens retidas pelo atacante e entregues depois (sem relógio no nó).
+
+    A memória é limitada a MAX_REPLAY_NODES identidades e MAX_BOOTS_PER_NODE boots por nó.
+    Ao atingir o limite de identidades, novos nós são recusados (fail-closed); o estado de
+    segurança de nós já conhecidos nunca é removido automaticamente para abrir espaço.
     """
 
-    def __init__(self) -> None:
-        self._last: Dict[str, "OrderedDict[int, int]"] = {}
+    def __init__(self, max_nodes: int = MAX_REPLAY_NODES) -> None:
+        if max_nodes < 1:
+            raise ValueError("max_nodes deve ser >= 1")
+        self.max_nodes = max_nodes
+        self._last: Dict[str, "OrderedDict[int, int]"] = OrderedDict()
         self._lock = threading.Lock()
 
     def accept(self, node: str, boot: int, seq: int) -> bool:
         with self._lock:
-            boots = self._last.setdefault(node, OrderedDict())
+            boots = self._last.get(node)
+            if boots is None:
+                if len(self._last) >= self.max_nodes:
+                    raise ReplayCapacityError(
+                        f"limite de {self.max_nodes} nós rastreados atingido"
+                    )
+                boots = OrderedDict()
+                self._last[node] = boots
+            else:
+                self._last.move_to_end(node)
             if boot in boots and seq <= boots[boot]:
                 return False
             boots[boot] = seq
@@ -88,4 +111,12 @@ def timestamp_ok(ts, now: float, required: bool, window_s: float = DEFAULT_TS_WI
         return not required
     if isinstance(ts, bool) or not isinstance(ts, (int, float)):
         return False
-    return abs(now - float(ts)) <= window_s
+    try:
+        stamp = float(ts)
+        current = float(now)
+        window = float(window_s)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if not all(math.isfinite(value) for value in (stamp, current, window)) or window <= 0:
+        return False
+    return abs(current - stamp) <= window

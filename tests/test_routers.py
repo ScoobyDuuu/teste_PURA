@@ -71,8 +71,12 @@ class RouterTests(unittest.TestCase):
     def test_determinismo_por_semente(self):
         a = Simulator(build_scenario(5), make_router("aco", 11)).run()
         b = Simulator(build_scenario(5), make_router("aco", 11)).run()
+        # compute_ms e over_budget são derivados do tempo de parede e variam
+        # com a carga da máquina; compare apenas as métricas determinísticas.
         a.pop("compute_ms")
         b.pop("compute_ms")
+        a.pop("over_budget")
+        b.pop("over_budget")
         self.assertEqual(a, b)
 
     def test_cenario_tem_eventos_dinamicos(self):

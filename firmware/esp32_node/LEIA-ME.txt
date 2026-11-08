@@ -1,0 +1,38 @@
+PURA — FIRMWARE ESP32 (CONTROLE HÍBRIDO)
+
+PAPÉIS
+- O ESP32 lê DHT11 e MQ-135 e decide localmente quando ligar/desligar a ventoinha no modo AUTO.
+- O dashboard na nuvem pode enviar três ações: LIGAR (MANUAL), DESLIGAR (MANUAL) e AUTO (devolve o controle aos sensores do ESP32).
+- Um comando MANUAL é renovado pelo servidor enquanto o ESP32 está conectado. Se a placa não receber uma renovação autenticada por 30 segundos, volta ao controle automático local.
+- Se o servidor reiniciar, os comandos MANUAIS guardados em memória são apagados; o ESP32 volta para AUTO.
+
+PREPARAÇÃO
+1. Copie secrets.example.h para secrets.h nesta pasta.
+2. Preencha WIFI_SSID e WIFI_PASS com sua rede Wi-Fi de 2,4 GHz.
+3. Preencha GATEWAY_URL com a URL HTTPS real do serviço Render.
+4. Preencha HMAC_SECRET com o valor exato de PURA_SECRET no Render.
+5. Mantenha NODE_ID como S1 (ou use um identificador único para cada ESP32).
+6. Não publique secrets.h no GitHub.
+
+ARDUINO IDE
+- Placa: ESP32 Dev Module.
+- Instale: DHT sensor library (Adafruit) e Adafruit Unified Sensor.
+- Abra esp32_node.ino, compile e grave.
+- Monitor Serial: 115200 baud.
+
+PINAGEM DESTE FIRMWARE
+- DHT11 DATA: GPIO 4.
+- MQ-135 AO: GPIO 34, obrigatoriamente através do divisor de tensão 10k/10k.
+- GPIO 26: resistor de 10k para a base do BC548B.
+- BC548B: emissor no GND comum; coletor no IN do módulo relé ativo em LOW.
+- LED integrado: GPIO 2.
+- Nesta montagem com transistor, GPIO26 HIGH liga o relé. Confirme a polaridade e a fiação antes de conectar a carga.
+
+AUTOMAÇÃO LOCAL (MODO AUTO)
+- Liga quando ppm estimado >= 1000 OU temperatura >= 30 °C.
+- Desliga quando ppm estimado <= 800 E temperatura <= 28 °C.
+- Se ambos os sensores estiverem inválidos, conserva o estado atual.
+- O MQ-135 aquece durante 60 segundos; seu valor de ppm é apenas estimativo e depende de calibração. Não é medidor certificado de CO2.
+
+REDES PÚBLICAS
+O firmware exige Wi-Fi 2,4 GHz WPA/WPA2-Personal, DNS, NTP (UDP 123) e HTTPS de saída (TCP 443). Não automatiza captive portals, WPA2-Enterprise ou cadastro por MAC.

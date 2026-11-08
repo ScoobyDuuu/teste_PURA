@@ -30,39 +30,50 @@ def msg(boot, seq):
 
 
 def main():
-    log = os.path.join(tempfile.mkdtemp(), "trafego.jsonl")
-    state = State(SECRET, TrafficMonitor(bad_sig_limit=5, block_s=60), traffic_log=log)
-    srv, _ = make_server("127.0.0.1", 0, state)
-    port = srv.server_address[1]
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    # TemporaryDirectory remove a pasta e o JSONL ao sair, inclusive em caso de erro.
+    with tempfile.TemporaryDirectory(prefix="pura-security-demo-") as temp_dir:
+        log = os.path.join(temp_dir, "trafego.jsonl")
+        state = State(SECRET, TrafficMonitor(bad_sig_limit=5, block_s=60), traffic_log=log)
+        srv, _ = make_server("127.0.0.1", 0, state)
+        port = srv.server_address[1]
+        worker = threading.Thread(target=srv.serve_forever, daemon=True)
+        worker.start()
 
-    print("== 1) Tráfego legítimo do ESP32 (boot=111)")
-    first = msg(111, 1)
-    print("   seq=1 ->", post(port, first, sign(SECRET, first)))
-    second = msg(111, 2)
-    print("   seq=2 ->", post(port, second, sign(SECRET, second)))
+        try:
+            print("== 1) Tráfego legítimo do ESP32 (boot=111)")
+            first = msg(111, 1)
+            print("   seq=1 ->", post(port, first, sign(SECRET, first)))
+            second = msg(111, 2)
+            print("   seq=2 ->", post(port, second, sign(SECRET, second)))
 
-    print("== 2) O ESP32 reinicia (boot=222) e continua enviando")
-    third = msg(222, 1)
-    print("   boot=222 seq=1 ->", post(port, third, sign(SECRET, third)))
+            print("== 2) O ESP32 reinicia (boot=222) e continua enviando")
+            third = msg(222, 1)
+            print("   boot=222 seq=1 ->", post(port, third, sign(SECRET, third)))
 
-    print("== 3) Atacante reenvia mensagem capturada do boot antigo (VULN-001)")
-    print("   replay (boot=111, seq=2) ->", post(port, second, sign(SECRET, second)), "(409 = rejeitado)")
+            print("== 3) Atacante reenvia mensagem capturada do boot antigo (VULN-001)")
+            print("   replay (boot=111, seq=2) ->", post(port, second, sign(SECRET, second)),
+                  "(409 = rejeitado)")
 
-    print("== 4) Falsificação: 6 mensagens com assinatura inválida")
-    codes = [post(port, msg(999, i), "00" * 32) for i in range(6)]
-    print("   códigos:", codes, "(401 ... depois 429 = IP bloqueado)")
-    print("   mensagem legítima durante o bloqueio ->", post(port, msg(222, 2), sign(SECRET, msg(222, 2))))
+            print("== 4) Falsificação: 6 mensagens com assinatura inválida")
+            codes = [post(port, msg(999, i), "00" * 32) for i in range(6)]
+            print("   códigos:", codes, "(401 ... depois 429 = IP bloqueado)")
+            legitimate = msg(222, 2)
+            print("   mensagem legítima durante o bloqueio ->", post(port, legitimate,
+                                                                      sign(SECRET, legitimate)))
 
-    print("== 5) Alertas do monitor")
-    for a in state.monitor.snapshot()["alerts"]:
-        print(f"   [{a['severity']:6}] {a['kind']:20} {a['source']:12} {a['detail']}")
-    srv.shutdown()
-    srv.server_close()
+            print("== 5) Alertas do monitor")
+            for alert in state.monitor.snapshot()["alerts"]:
+                print(f"   [{alert['severity']:6}] {alert['kind']:20} "
+                      f"{alert['source']:12} {alert['detail']}")
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            worker.join(timeout=3)
 
-    print("== 6) Análise offline do log de tráfego (python -m pura.monitor <arquivo>)")
-    res = analyze_log(log)
-    print("   eventos:", res["events"], "| por IP:", res["by_ip"], "| bloqueados:", res["blocked"])
+        print("== 6) Análise offline do log de tráfego (python -m pura.monitor <arquivo>)")
+        result = analyze_log(log)
+        print("   eventos:", result["events"], "| por IP:", result["by_ip"],
+              "| bloqueados:", result["blocked"])
 
 
 if __name__ == "__main__":

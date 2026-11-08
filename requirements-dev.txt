@@ -1,0 +1,3 @@
+# Ferramentas de desenvolvimento e CI.
+-r requirements.txt
+ruff>=0.5

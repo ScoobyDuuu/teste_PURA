@@ -184,9 +184,19 @@ def plot(outdir: str, summary: Dict, ts: Dict) -> None:
     plt.close(fig)
 
 
+def _valid_seed_count(value: str) -> int:
+    try:
+        seeds = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("--seeds deve ser um inteiro") from exc
+    if seeds < 2:
+        raise argparse.ArgumentTypeError("--seeds deve ser >= 2 para calcular desvio-padrão")
+    return seeds
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--seeds", type=int, default=30)
+    ap.add_argument("--seeds", type=_valid_seed_count, default=30)
     ap.add_argument("--out", default="results")
     a = ap.parse_args()
     t0 = time.time()

@@ -1,0 +1,20 @@
+# Blueprint Render. O serviço usa o Dockerfile na raiz do repositório.
+# AutoDeploy após os checks do GitHub Actions concluírem com sucesso.
+services:
+  - type: web
+    name: pura-gateway
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: PURA_SECRET
+        generateValue: true
+      - key: PURA_DASHBOARD_USER
+        value: pura
+      - key: PURA_DASHBOARD_PASSWORD
+        generateValue: true
+      - key: PURA_REQUIRE_TS
+        value: "1"
+      - key: PURA_TS_WINDOW_S
+        value: "120"

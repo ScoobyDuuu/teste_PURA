@@ -36,6 +36,7 @@ a{color:var(--cy)}
 .btn:hover{background:rgba(34,211,238,.2);box-shadow:var(--glow)}
 .btn.on{background:linear-gradient(90deg,var(--cy),var(--bl));color:#031018;border-color:transparent;font-weight:700}
 .btn.sm{padding:5px 11px;font-size:13px}
+.fanremote{margin-top:14px}.fanremote .ctl{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.fanremote select{font:inherit;color:var(--tx);background:#071a2b;border:1px solid var(--bd2);border-radius:9px;padding:8px 10px;min-width:110px}.fanremote .fanstate{margin-top:10px;color:var(--mut);font-size:13px}.fanremote .fanstate b{color:var(--cy)}
 .btn.danger{border-color:rgba(251,77,106,.55);background:rgba(251,77,106,.1)}.btn.danger:hover{background:rgba(251,77,106,.25);box-shadow:0 0 16px rgba(251,77,106,.4)}
 main{margin-left:224px;padding:0 22px 90px;position:relative;z-index:1;max-width:1480px}
 .top{position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:14px;padding:12px 0;background:linear-gradient(180deg,var(--bg) 60%,transparent);flex-wrap:wrap}
@@ -174,6 +175,7 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;b
     <a href="#como"><i>⌬</i><span>Como funciona</span></a>
     <a href="#rede"><i>⛓</i><span>Rede ao vivo</span></a>
     <a href="#ar"><i>≋</i><span>Qualidade do ar</span></a>
+    <a href="#fanControl"><i>⏻</i><span>Controle da ventoinha</span></a>
     <a href="#algoritmos"><i>✦</i><span>Algoritmos</span></a>
     <a href="#seguranca"><i>⛨</i><span>Segurança</span></a>
     <a href="#tempo"><i>◷</i><span>Linha do tempo</span></a>
@@ -214,7 +216,7 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;b
       <div class="pn step"><div class="n">PASSO 01</div><div class="ic">🌫️</div><b>O sensor mede</b><p>Um ESP32 mede CO₂, temperatura e umidade da sala.</p></div>
       <div class="pn step"><div class="n">PASSO 02</div><div class="ic">📡</div><b>A rede escolhe o caminho</b><p>Algoritmos decidem por onde enviar, desviando de falhas e congestionamento.</p></div>
       <div class="pn step"><div class="n">PASSO 03</div><div class="ic">🛡️</div><b>O gateway protege</b><p>Confere a assinatura de cada mensagem e bloqueia falsificações e repetições.</p></div>
-      <div class="pn step"><div class="n">PASSO 04</div><div class="ic">🌀</div><b>O ventilador age</b><p>Se o ar piora, um comando assinado liga o ventilador. Quando melhora, desliga.</p></div>
+      <div class="pn step"><div class="n">PASSO 04</div><div class="ic">🌀</div><b>O ventilador age</b><p>O ESP32 controla o ventilador localmente. O servidor pode solicitar ligar/desligar ou devolver o controle ao modo automático.</p></div>
     </div>
   </section>
 
@@ -266,7 +268,19 @@ table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;b
           <div class="c"><b id="vH">–</b><small>%</small></div></div></div>
       <div class="pn gauge"><h3 style="width:100%">Ventilador</h3>
         <svg class="fan" id="fan" viewBox="0 0 64 64" style="transform:none"><g fill="currentColor"><path d="M32 30c-2-9 1-16 8-18 6-1 8 5 4 10-3 4-7 7-12 8z"/><path d="M34 32c9-2 16 1 18 8 1 6-5 8-10 4-4-3-7-7-8-12z"/><path d="M32 34c2 9-1 16-8 18-6 1-8-5-4-10 3-4 7-7 12-8z"/><path d="M30 32c-9 2-16-1-18-8-1-6 5-8 10-4 4 3 7 7 8 12z"/><circle cx="32" cy="32" r="4"/></g></svg>
-        <b id="fanTxt" style="font-size:20px">–</b><div class="scale">Liga acima de 1000 ppm<br>Desliga abaixo de 800 ppm</div></div>
+        <b id="fanTxt" style="font-size:20px">–</b><div class="scale">Controle automático no ESP32<br>1000/800 ppm estimados · 30/28 °C</div></div>
+    </div>
+    <div class="pn fanremote" id="fanControl" style="scroll-margin-top:18px">
+      <h3>Comando remoto do ventilador <span class="tag" id="fanModeTag">AUTO · ESP32</span></h3>
+      <div class="ctl">
+        <span class="lab">Dispositivo</span>
+        <select id="fanNode" aria-label="Dispositivo ESP32"><option value="">Aguardando ESP32…</option></select>
+        <button class="btn sm" id="fanForceOn" type="button" disabled>Ligar ventilador</button>
+        <button class="btn sm danger" id="fanForceOff" type="button" disabled>Desligar ventilador</button>
+        <button class="btn sm" id="fanReturnAuto" type="button" disabled>Automático (ESP32)</button>
+      </div>
+      <div class="fanstate" id="fanRemoteStatus" aria-live="polite">O ESP32 controla a ventoinha automaticamente. Os botões enviam uma sobreposição manual pela nuvem.</div>
+      <p class="sub">Em modo manual, o último comando remoto permanece ativo enquanto o ESP32 continua conectado. Sem comunicação autenticada por 30 segundos, o controle automático local é retomado. Selecione Automático para devolver o controle imediatamente aos sensores.</p>
     </div>
     <div class="pn" style="margin-top:14px"><h3>CO₂ ao longo do tempo (ppm)</h3><svg id="spark" viewBox="0 0 900 90" preserveAspectRatio="none"></svg>
       <div class="note" id="airNote"></div></div>
@@ -521,18 +535,77 @@ const _rec=record;
 const AIR={ppm:[],real:false,fan:false,t0:performance.now()};
 function ring(id,frac,color){const c=$(id);const C=2*Math.PI*62;c.style.strokeDasharray=C;c.style.strokeDashoffset=C*(1-Math.max(0,Math.min(1,frac)));c.style.stroke=color;c.style.color=color}
 function airRender(ppm,t,h,fan,series){
-  $('#vCo2').textContent=f(ppm,0);$('#vT').textContent=f(t,1);$('#vH').textContent=f(h,0);
-  const col=ppm>=1000?'#fb4d6a':ppm>=800?'#f59e0b':'#34d399';ring('#gCo2',ppm/2000,col);ring('#gT',t/50,'#a78bfa');ring('#gH',h/100,'#3b82f6');
-  $('#co2txt').textContent=ppm>=1000?'Ar abaixo do ideal: ventilando':ppm>=800?'Atenção: ar carregando':'Ar em boa qualidade';$('#co2txt').style.color=col;
+  const ppmValid=Number.isFinite(ppm);
+  $('#vCo2').textContent=ppmValid?f(ppm,0):'—';$('#vT').textContent=f(t,1);$('#vH').textContent=f(h,0);
+  const col=!ppmValid?'#94a3b8':ppm>=1000?'#fb4d6a':ppm>=800?'#f59e0b':'#34d399';ring('#gCo2',ppmValid?ppm/2000:0,col);ring('#gT',t/50,'#a78bfa');ring('#gH',h/100,'#3b82f6');
+  $('#co2txt').textContent=!ppmValid?'MQ-135 aquecendo ou sem leitura':ppm>=1000?'Ar abaixo do ideal: ventilando':ppm>=800?'Atenção: ar carregando':'Ar em boa qualidade';$('#co2txt').style.color=col;
   $('#fan').classList.toggle('on',fan);$('#fanTxt').textContent=fan?'LIGADO':'DESLIGADO';$('#fanTxt').style.color=fan?'var(--gr)':'var(--mut)';
   if(series.length>1){const lo=Math.min(...series,700)-30,hi=Math.max(...series,1100)+30,x=i=>900*i/(series.length-1),y=v=>86-82*(v-lo)/(hi-lo);
     const yl=v=>y(v);$('#spark').innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22d3ee" stop-opacity=".35"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>
     <line x1="0" x2="900" y1="${yl(1000)}" y2="${yl(1000)}" stroke="#fb4d6a" stroke-dasharray="5 5" opacity=".6"/><line x1="0" x2="900" y1="${yl(800)}" y2="${yl(800)}" stroke="#34d399" stroke-dasharray="5 5" opacity=".5"/>
     <polygon fill="url(#sg)" points="0,90 ${series.map((v,i)=>x(i)+','+y(v)).join(' ')} 900,90"/><polyline fill="none" stroke="#22d3ee" stroke-width="2.2" vector-effect="non-scaling-stroke" points="${series.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>`}
 }
-function setSource(real){AIR.real=real;const tg=$('#airTag');tg.textContent=real?'AO VIVO · ESP32':'DEMO';tg.className='tag'+(real?'':' demo');
-  $('#srcDot').className='dot'+(real?'':' demo');$('#srcTxt').textContent=real?'Dados reais do ESP32':'Dados: demonstração';$('#bSrc').textContent=real?'ESP32 (ao vivo)':'demonstração';
-  $('#airNote').textContent=real?'Leituras reais do sensor, assinadas e verificadas pelo gateway. Linha vermelha: limite para ligar (1000 ppm); verde: para desligar (800 ppm).':'Sem ESP32 conectado: exibindo uma demonstração gerada para ilustrar o painel. Linhas: limites de ligar (1000 ppm) e desligar (800 ppm).'}
+let latestAirData=null;
+function refreshFanControls(data){
+  latestAirData=data;
+  const select=$('#fanNode');
+  // Só oferece comandos para nós que enviaram telemetria nos últimos 20 s.
+  // Amostras antigas permanecem no histórico, mas não significam conexão ativa.
+  const nowSeconds=Date.now()/1000;
+  const latestByNode=new Map();
+  for(const sample of (data.samples||[])){
+    const previous=latestByNode.get(sample.node);
+    if(!previous||Number(sample.rx||0)>Number(previous.rx||0))latestByNode.set(sample.node,sample);
+  }
+  const nodes=[...latestByNode.values()]
+    .filter(sample=>Number.isFinite(Number(sample.rx))&&nowSeconds-Number(sample.rx)<=20)
+    .map(sample=>sample.node);
+  const previous=select.value;
+  select.innerHTML=nodes.length?nodes.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''):'<option value="">Aguardando ESP32…</option>';
+  if(nodes.includes(previous))select.value=previous;
+  else if(nodes.length)select.value=nodes[nodes.length-1];
+  const node=select.value;
+  const mode=(data.mode||{})[node]||'auto';
+  const physical=(data.fan||{})[node];
+  const target=(data.command_fan||{})[node];
+  const tag=$('#fanModeTag');
+  tag.textContent=mode==='manual'?'MANUAL · NUVEM':'AUTO · ESP32';
+  tag.className='tag'+(mode==='manual'?' demo':'');
+  $('#fanForceOn').classList.toggle('on',mode==='manual'&&target===true);
+  $('#fanForceOff').classList.toggle('on',mode==='manual'&&target===false);
+  $('#fanReturnAuto').classList.toggle('on',mode==='auto');
+  const physicalText=typeof physical==='boolean'?(physical?'ligado':'desligado'):'desconhecido';
+  const targetText=typeof target==='boolean'?(target?'ligado':'desligado'):'desconhecido';
+  $('#fanRemoteStatus').innerHTML=node
+    ? `ESP32 <b>${esc(node)}</b> · estado físico reportado: <b>${physicalText.toUpperCase()}</b> · modo: <b>${mode==='manual'?'MANUAL':'AUTOMÁTICO LOCAL'}</b>${mode==='manual'?` · comando remoto: <b>${targetText.toUpperCase()}</b>`:''}`
+    : 'Nenhum ESP32 enviando telemetria nos últimos 20 segundos. Os comandos serão habilitados após a próxima mensagem válida.';
+  ['#fanForceOn','#fanForceOff','#fanReturnAuto'].forEach(id=>$(id).disabled=!node);
+}
+async function sendFanCommand(mode,fan){
+  const node=$('#fanNode').value;
+  if(!node){$('#fanRemoteStatus').textContent='Nenhum ESP32 disponível para receber o comando.';return}
+  const buttons=['#fanForceOn','#fanForceOff','#fanReturnAuto'];
+  buttons.forEach(id=>$(id).disabled=true);
+  try{
+    const payload={node,mode};if(mode==='manual')payload.fan=fan;
+    const response=await fetch('/api/fan',{method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-PURA-Action':'fan-control'},body:JSON.stringify(payload)});
+    const result=await response.json().catch(()=>({error:'Resposta inválida do servidor'}));
+    if(!response.ok)throw new Error(result.error||`HTTP ${response.status}`);
+    $('#fanRemoteStatus').textContent=mode==='auto'
+      ? `Controle automático devolvido ao ESP32 ${node}. A lógica local voltará a decidir pela leitura dos sensores.`
+      : `Comando remoto registrado para ESP32 ${node}: ventilador ${fan?'LIGADO':'DESLIGADO'}. Será aplicado na próxima consulta autenticada do dispositivo.`;
+  }catch(error){$('#fanRemoteStatus').textContent=`Não foi possível enviar o comando: ${error.message}`}
+  finally{buttons.forEach(id=>$(id).disabled=!$('#fanNode').value)}
+}
+$('#fanForceOn').onclick=()=>sendFanCommand('manual',true);
+$('#fanForceOff').onclick=()=>sendFanCommand('manual',false);
+$('#fanReturnAuto').onclick=()=>sendFanCommand('auto');
+$('#fanNode').onchange=()=>{if(latestAirData)refreshFanControls(latestAirData)};
+
+function setSource(real,stale=false){AIR.real=real;const tg=$('#airTag');tg.textContent=real?'AO VIVO · ESP32':stale?'SEM SINAL · ÚLTIMA LEITURA':'DEMO';tg.className='tag'+(real?'':' demo');
+  $('#srcDot').className='dot'+(real?'':' demo');$('#srcTxt').textContent=real?'Dados reais do ESP32':stale?'Última leitura armazenada; ESP32 sem atualização':'Dados: demonstração';$('#bSrc').textContent=real?'ESP32 (ao vivo)':stale?'ESP32 (sem sinal)':'demonstração';
+  $('#airNote').textContent=real?'Leituras reais do sensor, assinadas e verificadas pelo gateway. Linha vermelha: limite para ligar (1000 ppm); verde: para desligar (800 ppm).':stale?'O ESP32 não envia dados recentes. Exibindo a última leitura recebida; verifique Wi-Fi e conexão com o Render.':'Sem ESP32 conectado: exibindo uma demonstração gerada para ilustrar o painel. Linhas: limites de ligar (1000 ppm) e desligar (800 ppm).'}
 let demoFan=false;
 const demoAt=t=>880+330*Math.sin(t/14)+20*Math.sin(t/3.1)+(Math.random()-.5)*14;
 function demoTick(){if(!AIR.ppm.length)for(let i=100;i>0;i--)AIR.ppm.push(demoAt(((performance.now()-AIR.t0)/1000)-i*2.5));const t=(performance.now()-AIR.t0)/1000,ppm=880+330*Math.sin(t/14)+20*Math.sin(t/3.1)+(Math.random()-.5)*14;
@@ -542,16 +615,30 @@ async function poll(){
   try{
     const d=await (await fetch('/api/telemetry',{cache:'no-store'})).json();$('#sysDot').className='dot';$('#sysTxt').textContent='Sistema operacional';$('#bGw').textContent='online';
     const s=d.samples,l=s[s.length-1],c=d.counters;
-    if(l&&l.ppm!=null){setSource(true);const ser=s.map(x=>x.ppm).filter(x=>x!=null);const fan=Object.values(d.fan||{})[0]||false;
-      airRender(Number(l.ppm),Number(l.t??0),Number(l.h??0),!!fan,ser)}
+    refreshFanControls(d);
+    let nodeFresh=false;
+    if(l){
+      // O campo rx é o instante de recepção gravado pelo gateway. Não confundir
+      // uma amostra antiga ainda em RAM com um ESP32 atualmente conectado.
+      const ageSeconds=Math.max(0,Date.now()/1000-Number(l.rx||0));
+      const isFresh=ageSeconds<=20;
+      nodeFresh=isFresh;
+      setSource(isFresh,!isFresh);
+      // O nó já é considerado conectado mesmo durante o aquecimento do MQ-135,
+      // quando ppm=null. As leituras e o estado do relé pertencem ao mesmo ESP32.
+      const nodeSamples=s.filter(x=>x.node===l.node);
+      const ser=nodeSamples.map(x=>x.ppm).filter(x=>x!=null);
+      const fan=typeof l.fan==='boolean'?l.fan:!!(d.fan||{})[l.node];
+      const ppmValue=l.ppm==null?null:Number(l.ppm);
+      airRender(ppmValue,Number(l.t??0),Number(l.h??0),fan,ser)}
     else{if(AIR.real)setSource(false);if(!AIR.real&&!AIR._d){setSource(false);AIR._d=1}demoTick()}
-    shield(c,null,!!l);
-    const al=await (await fetch('/api/alerts',{cache:'no-store'})).json();shield(c,al,!!l);
+    shield(c,null,nodeFresh);
+    const al=await (await fetch('/api/alerts',{cache:'no-store'})).json();shield(c,al,nodeFresh);
   }catch(e){$('#sysDot').className='dot off';$('#sysTxt').textContent='Gateway offline';$('#bGw').textContent='offline (modo demo)';setSource(false);demoTick();shield(null,null,false)}
   setTimeout(poll,2500);
 }
 function shield(c,al,real){
-  const tg=$('#secTag');tg.textContent=c?'AO VIVO':'DEMO';tg.className='tag'+(c?'':' demo');
+  const tg=$('#secTag');tg.textContent=real?'AO VIVO':c?'SEM SINAL':'DEMO';tg.className='tag'+(real?'':' demo');
   const v=c||{accepted:0,bad_signature:0,replay:0,bad_request:0};
   $('#shield').innerHTML=[['Aceitas',v.accepted,'var(--gr)'],['Assinatura inválida',v.bad_signature,v.bad_signature?'var(--rd)':'var(--tx)'],['Replay bloqueado',v.replay,v.replay?'var(--rd)':'var(--tx)'],['Requisição inválida',v.bad_request,'var(--tx)']]
    .map(([l,n,c2])=>`<div class="st"><div class="l">${l}</div><div class="v" style="color:${c2}">${n}</div></div>`).join('');
@@ -635,7 +722,7 @@ function tickView(){
 const SCENES=[['inicio','Bem-vindo ao P.U.R.A: uma rede que escolhe sozinha o melhor caminho para proteger o ar que respiramos.'],
  ['como','Um sensor mede o ar, a rede leva a informação, o gateway protege e o ventilador age.'],
  ['rede','Aqui a rede está viva. Vê as falhas e os ataques? O roteador inteligente desvia de tudo em tempo real.'],
- ['ar','O sensor ESP32 mede CO₂, temperatura e umidade e liga o ventilador quando o ar piora.'],
+ ['ar','O ESP32 mede o ar e controla o ventilador localmente; o dashboard também permite comandos remotos.'],
  ['algoritmos','Cinco algoritmos foram testados. Os inteligentes entregam mais dados, com menos atraso.'],
  ['seguranca','Cada mensagem é assinada. Falsificações e repetições são barradas, e atacantes são bloqueados.'],
  ['tempo','Este é o experimento completo: falhas, picos de tráfego e como cada algoritmo reagiu.']];

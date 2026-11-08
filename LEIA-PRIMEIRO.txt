@@ -1,0 +1,13 @@
+PURA — PACOTE PARA GITHUB + RENDER
+
+1) Envie TODO o conteúdo deste pacote para a raiz de um repositório GitHub (não crie uma pasta extra chamada pura).
+2) No Render, escolha New > Blueprint, conecte o repositório e confirme o serviço descrito em render.yaml.
+3) Aguarde o deploy e copie a URL HTTPS do serviço. Em Environment, copie PURA_SECRET e guarde PURA_DASHBOARD_PASSWORD.
+4) No computador, copie firmware/esp32_node/secrets.example.h para secrets.h e preencha Wi-Fi, URL HTTPS e HMAC_SECRET com o valor exato de PURA_SECRET. Não envie secrets.h ao GitHub.
+5) No Arduino IDE, instale DHT sensor library (Adafruit) e Adafruit Unified Sensor, abra firmware/esp32_node/esp32_node.ino, selecione ESP32 Dev Module e grave.
+6) Abra a URL do serviço para o dashboard; usuário padrão: pura; senha: PURA_DASHBOARD_PASSWORD.
+7) No menu lateral, clique em Controle da ventoinha. Use Ligar ventilador, Desligar ventilador ou Automático (ESP32). Os botões são habilitados quando o ESP32 envia telemetria recente (últimos 20 s). O ESP32 mantém o controle automático local por sensores; o comando manual remoto expira e devolve o controle local após 30 s sem comunicação autenticada.
+
+Leia docs/DEPLOY.md e docs/ESP32_RENDER.md para detalhes, pinagem, segurança, limitações de redes públicas e do plano gratuito.
+
+IMPORTANTE: a entrega passou nos testes Python e nos testes estáticos de contrato do firmware, mas não foi possível compilar o .ino nem executar Docker neste ambiente. A compilação e o teste elétrico/físico ainda devem ser feitos antes de ligar o ventilador.

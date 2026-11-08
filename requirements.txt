@@ -1,0 +1,3 @@
+# P.U.R.A. - núcleo
+# Python 3.10+; o simulador, gateway e testes usam somente a biblioteca padrão.
+# Dependências opcionais ficam em requirements-graphics.txt.

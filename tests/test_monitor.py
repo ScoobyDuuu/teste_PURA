@@ -66,6 +66,57 @@ class MonitorTests(unittest.TestCase):
         self.clock.t += 31
         self.assertEqual(len(self.mon.check_silence()), 1)
 
+    def test_limites_de_ips_e_nos_rastreados(self):
+        mon = TrafficMonitor(clock=self.clock, bad_sig_limit=1, max_tracked_ips=2,
+                             max_tracked_nodes=2, node_retention_s=10)
+        for ip in ("10.0.0.1", "10.0.0.2", "10.0.0.3"):
+            mon.record(ip, "bad_signature")
+        self.assertLessEqual(len(mon._blocked), 2)
+
+        for node in ("S1", "S2", "S3"):
+            mon.record("10.0.0.9", "accepted", node)
+        self.assertLessEqual(len(mon._last_seen), 2)
+        self.assertNotIn("S1", mon._last_seen)
+
+        self.clock.t += 11
+        mon.record("10.0.0.9", "accepted", "S4")
+        self.assertLessEqual(len(mon._last_seen), 2)
+        self.assertNotIn("S2", mon._last_seen)
+
+    def test_analise_de_log_limita_ips_unicos(self):
+        rows = [
+            {"ts": 1000 + i, "ip": f"192.0.2.{i}", "outcome": "accepted", "node": "", "size": 10}
+            for i in range(5)
+        ]
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8") as fh:
+            fh.write("\n".join(json.dumps(row) for row in rows))
+            path = fh.name
+        try:
+            result = analyze_log(path, max_ips=2)
+        finally:
+            os.unlink(path)
+        self.assertEqual(result["events"], 5)
+        self.assertEqual(len(result["by_ip"]), 2)
+        self.assertEqual(result["by_ip_omitted_events"], 3)
+
+    def test_analise_rejeita_size_malformado_e_linha_excessiva(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, "bad.jsonl")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps({"ts": 1000, "ip": "10.0.0.1", "outcome": "accepted", "size": "grande"}) + "\n")
+            with self.assertRaisesRegex(ValueError, "linha 1"):
+                analyze_log(path)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("x" * (64 * 1024 + 10) + "\n")
+            with self.assertRaisesRegex(ValueError, "excede"):
+                analyze_log(path)
+
+    def test_configuracao_de_monitor_rejeita_limites_invalidos(self):
+        with self.assertRaises(ValueError):
+            TrafficMonitor(flood_limit=0)
+        with self.assertRaises(ValueError):
+            TrafficMonitor(window_s=float("inf"))
+
     def test_snapshot_e_analise_offline(self):
         rows = [{"ts": 1000 + i, "ip": "10.0.0.9", "outcome": "bad_signature", "node": "", "size": 90}
                 for i in range(6)]

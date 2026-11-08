@@ -4,7 +4,7 @@ import unittest
 import urllib.error
 import urllib.request
 
-from pura.security import ReplayGuard, sign, verify
+from pura.security import ReplayCapacityError, ReplayGuard, sign, verify
 from pura.server import State, make_server
 
 SECRET = b"segredo-de-teste"
@@ -38,6 +38,13 @@ class SecurityTests(unittest.TestCase):
         self.assertTrue(g.accept("S1", 2, 1))      # novo boot
         self.assertFalse(g.accept("S1", 1, 2))     # boot antigo: replay (VULN-001)
 
+    def test_replay_guard_limita_identidades_sem_descartar_estado_antigo(self):
+        g = ReplayGuard(max_nodes=1)
+        self.assertTrue(g.accept("S1", 10, 1))
+        with self.assertRaises(ReplayCapacityError):
+            g.accept("S2", 20, 1)
+        self.assertFalse(g.accept("S1", 10, 1))  # estado de S1 continua protegido
+
     def test_servidor_end_to_end(self):
         srv, st = make_server("127.0.0.1", 0, State(SECRET))
         port = srv.server_address[1]
@@ -53,11 +60,18 @@ class SecurityTests(unittest.TestCase):
             self.assertEqual(st.counters["accepted"], 1)
             self.assertEqual(st.counters["replay"], 1)
             self.assertEqual(st.counters["bad_signature"], 2)
-            # comando assinado: ppm alto => ventilador ligado
-            with urllib.request.urlopen(f"http://127.0.0.1:{port}/control?node=S1", timeout=3) as r:
+            # O gateway não decide pelo ppm: em AUTO devolve o estado físico reportado.
+            nonce = "1020304050607080"
+            request_message = f"GET\n/control\nS1\n{nonce}".encode()
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/control?node=S1&nonce={nonce}",
+                headers={"X-Request-Signature": sign(SECRET, request_message)})
+            with urllib.request.urlopen(req, timeout=3) as r:
                 body, sig = r.read(), r.headers["X-Signature"]
             self.assertTrue(verify(SECRET, body, sig))
-            self.assertTrue(json.loads(body)["fan"])
+            self.assertFalse(json.loads(body)["fan"])
+            self.assertEqual(json.loads(body)["mode"], "auto")
+            self.assertEqual(json.loads(body)["nonce"], nonce)
         finally:
             srv.shutdown()
             srv.server_close()

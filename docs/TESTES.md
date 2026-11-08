@@ -6,12 +6,14 @@ registrado com print, link ou log no relatório.
 ## A. Testes automáticos — rodar localmente antes de qualquer PR
 | # | Comando | Resultado esperado |
 |---|---|---|
-| A1 | `python -m unittest discover -s tests -t . -v` | **39 testes, OK** (modelo, roteadores, guarda, PSO, segurança, monitor, vulnerabilidades VULN-001 a 007) |
-| A2 | `pip install ruff && ruff check .` | `All checks passed!` (já verificado com o ruff real; um E702 em `tests/test_routers.py` que quebraria o CI foi corrigido). `tools/minilint.py` segue como alternativa offline |
+| A1 | `python -m unittest discover -s tests -t . -v` | Todos os testes automatizados devem passar (modelo, roteadores, segurança, monitor, armazenamento, API e regressões) |
+| A2 | `python -m pip install -r requirements-dev.txt` e `python -m ruff check .` | `All checks passed!`; `tools/minilint.py` segue como alternativa offline |
 | A3 | `python -m pura.experiments --seeds 30` | ~1 min; recria `results/`. Confira: Dijkstra residual vence ou empata em tempo; ACO/Memético reduzem a latência p95 contra o Dijkstra |
-| A4 | `PYTHONPATH=. python tools/security_demo.py` | 200, 200, 200 → **409** (replay) → 401×5 e **429** (bloqueio) → alertas `BAD_SIGNATURE_BURST` e `REPLAY` |
-| A5 | `docker build -t pura-gateway . && docker run --rm -p 8000:8000 -e PURA_SECRET=segredo-com-16-ou-mais pura-gateway` | `curl localhost:8000/healthz` → `{"status": "ok"}` |
-| A6 | `docker run --rm pura-gateway` (sem segredo) | **Deve falhar** com a mensagem de segredo ausente (VULN-002) |
+| A4 | `python -m tools.security_demo` | 200, 200, 200 → **409** (replay) → 401×5 e **429** (bloqueio) → alertas `BAD_SIGNATURE_BURST` e `REPLAY`; pasta temporária removida ao terminar |
+| A5 | `docker build -t pura-gateway . && docker run --rm -p 8000:8000 -e PURA_SECRET=segredo-com-16-ou-mais -e PURA_DASHBOARD_PASSWORD=senha-dashboard-com-16 pura-gateway` | `/healthz` público retorna `{"status": "ok"}`; dashboard pede autenticação Basic |
+| A6 | `docker run --rm -e PURA_SECRET=segredo-com-16-ou-mais pura-gateway` (sem senha do dashboard) | **Deve falhar** ao tentar bind externo sem `PURA_DASHBOARD_PASSWORD` |
+
+A análise de retenção e os limites de logs/memória são descritos em `docs/DADOS_E_RETENCAO.md`; os testes de rotação e limites são executados pela suíte automatizada.
 
 ## B. Testes manuais obrigatórios
 
@@ -37,14 +39,16 @@ registrado com print, link ou log no relatório.
 ### B4. Hardware e firmware (**não testados em hardware até aqui**)
 1. Compile `firmware/esp32_node/esp32_node.ino` (ESP32 Dev Module, bibliotecas Adafruit DHT + Unified Sensor) com `secrets.h` preenchido.
 2. **Meça com multímetro** a tensão no GPIO34 com o divisor 10k/10k (deve ficar **abaixo de 3,3 V**; esperado ~2,5 V com o MQ-135 aquecido).
-3. Monitor Serial: leituras de T, UR e ppm plausíveis; o relé estala ao acionar; o ventilador liga no circuito de 12 V (ou 5 V, conforme o ventilador).
+3. Monitor Serial: leituras de T, UR e ppm plausíveis; o relé estala ao acionar; em AUTO, o próprio ESP32 deve aplicar a histerese local (1000/800 ppm estimados e 30/28 °C). O ventilador liga no circuito de 12 V (ou 5 V, conforme o ventilador).
 4. Com o MQ-135, aguarde o aquecimento e calibre `R0_KOHM` em ar limpo.
+5. Teste também iniciar o ESP32 com o roteador desligado: ele não deve travar no `setup()`; a automação local deve controlar a ventoinha normalmente.
 
 ### B5. Integração ESP32 ↔ gateway
 1. Telemetria aparece no dashboard (aba *Telemetria ao vivo*), `Aceitas` incrementa.
-2. Provoque ppm alto (respiração próxima ao sensor ou reduza temporariamente `ppm_on` no gateway) e confirme: comando assinado → relé liga → telemetria `fan: true`.
-3. **Fail-safe:** pare o gateway por 30 s; o ESP32 deve passar à regra local sem travar. Religue e confirme que volta a obedecer o gateway.
-4. Reinicie o ESP32: novo `boot` é aceito e a telemetria continua.
+2. Em AUTO, provoque temperatura ou leitura do sensor acima do limite de ligar e confirme que o ESP32 aciona o relé sem depender do Render.
+3. No dashboard, teste Ligar ventilador, Desligar ventilador e Automático (ESP32). Confirme no Monitor Serial `MODE=MANUAL`/`MODE=AUTO` e na telemetria o estado físico do relé.
+4. Em MANUAL, interrompa a conexão com o gateway por mais de 30 segundos e confirme que a placa retoma o controle automático local.
+5. Reinicie o ESP32: novo `boot` é aceito e a telemetria continua. Se o gateway reiniciar, os overrides manuais em RAM são apagados e o dispositivo volta para AUTO.
 
 ### B6. Segurança (evidências para o relatório)
 | Teste | Como | Esperado |
@@ -54,7 +58,10 @@ registrado com print, link ou log no relatório.
 | Replay de boot antigo | Reinicie o ESP32 e reenvie uma mensagem do boot anterior | HTTP 409 (VULN-001) |
 | Rajada | 6 requisições com assinatura inválida seguidas | 401… e depois **429** + alerta `BAD_SIGNATURE_BURST` + IP bloqueado no painel |
 | Replay após reinício (VULN-006) | Reinicie o gateway (com `PURA_REQUIRE_TS=1`) e reenvie uma mensagem capturada há mais de 2 min | HTTP 409 e alerta `REPLAY` |
-| Comando de outro nó (VULN-007) | No firmware, serve um comando assinado com `"node":"S2"` (proxy de teste) | Serial: `comando REJEITADO: destinado a outro no`; relé não muda |
+| Comando de outro nó (VULN-007) | Entregue ao firmware uma resposta HMAC válida, mas com `node` diferente | Serial: `comando REJEITADO: destinado a outro no`; relé não muda |
+| Replay de comando | Reenvie uma resposta antiga com nonce de requisição anterior | Serial: `comando REJEITADO: nonce incorreto (resposta antiga)`; relé não muda |
+| API sem credencial (VULN-008) | Abra `/api/telemetry` sem Basic Auth em bind de rede | HTTP 401; `/healthz` continua HTTP 200 |
+| Telemetria inválida (VULN-009) | Assine JSON com `ppm` string ou `NaN` | HTTP 400; nenhuma política/telemetria é atualizada |
 | Silêncio de nó | Desligue o ESP32 por mais de 30 s | Alerta `NODE_SILENCE` |
 | Sem segredo | Suba o gateway sem `PURA_SECRET` | Recusa subir |
 | **Criptografia em trânsito (VULN-004)** | Em rede de laboratório **própria**, capture com Wireshark/tcpdump: (1) `http://` e (2) `https://` | HTTP: JSON e comando legíveis. HTTPS: só dados cifrados |
