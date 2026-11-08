@@ -1,0 +1,15 @@
+== 1) Tráfego legítimo do ESP32 (boot=111)
+   seq=1 -> 200
+   seq=2 -> 200
+== 2) O ESP32 reinicia (boot=222) e continua enviando
+   boot=222 seq=1 -> 200
+== 3) Atacante reenvia mensagem capturada do boot antigo (VULN-001)
+   replay (boot=111, seq=2) -> 409 (409 = rejeitado)
+== 4) Falsificação: 6 mensagens com assinatura inválida
+   códigos: [401, 401, 401, 401, 401, 429] (401 ... depois 429 = IP bloqueado)
+   mensagem legítima durante o bloqueio -> 429
+== 5) Alertas do monitor
+   [high  ] BAD_SIGNATURE_BURST  127.0.0.1    5 assinaturas inválidas em 60s; IP bloqueado por 60s
+   [medium] REPLAY               127.0.0.1    mensagem repetida do nó S1
+== 6) Análise offline do log de tráfego (python -m pura.monitor <arquivo>)
+   eventos: 9 | por IP: {'127.0.0.1': {'accepted': 3, 'replay': 1, 'bad_signature': 5}} | bloqueados: ['127.0.0.1']

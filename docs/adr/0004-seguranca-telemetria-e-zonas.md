@@ -1,0 +1,5 @@
+# ADR-0004: Segurança — HMAC com anti-replay, guarda de rotas e zonas proibidas
+**Status**: aceita
+**Contexto**: o nó ESP32 envia telemetria e recebe comandos para um atuador físico (relé). Ameaças consideradas (STRIDE resumido): spoofing e adulteração de mensagens, replay de comandos, tráfego de controle passando por segmento não confiável, rota inválida instalada por falha do otimizador.
+**Decisão**: (1) HMAC-SHA256 em toda telemetria e em todo comando, com `(boot_id, seq)` contra replay e `cseq` monotônico nos comandos; (2) nenhum endpoint não autenticado aciona o atuador; (3) fluxos de controle são `restricted` e não atravessam a zona `untrusted`; (4) uma **guarda** no simulador rejeita qualquer rota inválida (laço, enlace caído, zona proibida) antes de instalá-la; (5) fail-safe local no ESP32 se não houver comando válido por 30 s.
+**Consequências**: integridade e autenticidade garantidas; **sem confidencialidade** (HTTP puro) e anti-replay de comando em RAM. Em produção: TLS com certificados por nó e relógio confiável (NTP).

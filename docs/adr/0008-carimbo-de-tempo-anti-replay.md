@@ -1,0 +1,6 @@
+# ADR-0008: Carimbo de tempo assinado contra replay após reinício do gateway
+**Status**: aceita
+**Contexto**: o `ReplayGuard` guarda `(boot, seq)` em memória (ADR-0004). No Render gratuito o serviço hiberna após ~15 min e perde o estado; depois disso, qualquer mensagem capturada voltava a ser aceita (VULN-006).
+**Decisão**: o firmware em modo `https://` (que já tem NTP) inclui `ts` (epoch) no corpo assinado. O gateway valida `|agora − ts| ≤ PURA_TS_WINDOW_S` (padrão 120 s). Com `PURA_REQUIRE_TS=1` (definido no `render.yaml`) a ausência de `ts` também é rejeitada (HTTP 409, alerta `REPLAY`). Em laboratório HTTP sem NTP, `ts` é opcional, mas se vier é sempre validado.
+**Alternativas descartadas**: persistir o guard em disco (efêmero no plano gratuito); desafio-resposta com nonce do servidor (mais um round-trip por mensagem em um nó que envia a cada 5 s).
+**Consequências**: um replay só funciona dentro da janela de 120 s e ainda esbarra no `ReplayGuard` enquanto o processo estiver vivo. Risco residual: relógio do nó errado (sem NTP) faz o nó ser rejeitado; dentro da janela, após reinício, ainda há exposição curta. Firmware **não testado em hardware**.

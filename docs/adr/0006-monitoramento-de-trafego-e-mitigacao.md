@@ -1,0 +1,6 @@
+# ADR-0006: Monitoramento de tráfego no gateway com mitigação automática
+**Status**: aceita
+**Contexto**: a categoria exige um módulo de monitoramento de tráfego com ao menos uma vulnerabilidade real identificada e mitigada. O gateway é o único ponto que vê todo o tráfego real (ESP32 e dashboard).
+**Decisão**: `TrafficMonitor` (`monitor.py`) recebe um `TrafficEvent` por requisição (IP, resultado, nó, tamanho) e aplica detectores em janela deslizante: rajada de assinaturas inválidas, inundação por IP, replay e silêncio de nó. Rajada e inundação bloqueiam o IP (HTTP 429, tempo limitado). O mesmo analisador roda offline sobre um log JSONL (`python -m pura.monitor`). O relógio é injetável, o que torna os testes determinísticos.
+**Alternativas descartadas**: Suricata/Snort (excesso de infraestrutura para o gateway gratuito, sem captura de pacotes no PaaS); WAF do provedor (não cobre a lógica de assinatura do protocolo).
+**Consequências**: detecção ciente do protocolo (distingue assinatura inválida de replay), simples de testar e portável. Limitações: bloqueio por IP e análise só na camada de aplicação, sem inspeção de pacotes. Para captura real use Wireshark/tcpdump no laboratório (ver docs/TESTES.md).

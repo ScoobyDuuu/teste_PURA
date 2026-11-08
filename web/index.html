@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P.U.R.A · Purificação Unificada e Reativa do Ar</title>
+<style>
+:root{--bg:#030912;--bg2:#06121f;--pn:rgba(8,24,40,.72);--bd:rgba(56,189,248,.22);--bd2:rgba(56,189,248,.5);--tx:#e6f4ff;--mut:#7f9bb3;
+ --cy:#22d3ee;--bl:#3b82f6;--vi:#a78bfa;--or:#f59e0b;--gr:#34d399;--rd:#fb4d6a;--glow:0 0 18px rgba(34,211,238,.35)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:radial-gradient(1200px 700px at 70% -10%,#0a2540 0%,transparent 60%),radial-gradient(900px 600px at 0% 100%,#071a33 0%,transparent 55%),var(--bg);
+ color:var(--tx);font:15px/1.55 "Segoe UI",Inter,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+ background:linear-gradient(rgba(34,211,238,.035) 1px,transparent 1px) 0 0/100% 4px,
+ radial-gradient(circle at 50% 50%,transparent 55%,rgba(0,0,0,.45) 100%)}
+a{color:var(--cy)}
+:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+/* ---------- layout ---------- */
+.side{position:fixed;left:0;top:0;bottom:0;width:224px;padding:16px 14px;z-index:20;background:linear-gradient(180deg,rgba(5,18,32,.95),rgba(3,10,20,.95));
+ border-right:1px solid var(--bd);display:flex;flex-direction:column;gap:6px}
+.logo{display:flex;align-items:center;gap:10px;padding:6px 6px 14px;border-bottom:1px solid var(--bd);margin-bottom:8px}
+.logo .orb{width:38px;height:38px;border-radius:50%;border:2px solid var(--cy);box-shadow:var(--glow),inset 0 0 12px rgba(34,211,238,.4);position:relative;flex:none}
+.logo .orb::after{content:"";position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,#fff 0,var(--cy) 40%,transparent 70%);animation:pulse 2.4s ease-in-out infinite}
+.logo b{display:block;font-size:20px;letter-spacing:.32em;color:#fff;text-shadow:0 0 14px rgba(34,211,238,.7)}
+.logo small{display:block;font-size:9px;letter-spacing:.28em;color:var(--mut);text-transform:uppercase;margin-top:-2px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid transparent;border-radius:9px;color:var(--mut);text-decoration:none;font-size:14px;transition:.2s}
+.nav a i{font-style:normal;width:18px;text-align:center;opacity:.9}
+.nav a:hover{color:#fff;background:rgba(34,211,238,.06)}
+.nav a.on{color:#fff;border-color:var(--bd2);background:linear-gradient(90deg,rgba(34,211,238,.16),rgba(34,211,238,.02));box-shadow:var(--glow)}
+.sidefoot{margin-top:auto;border:1px solid var(--bd);border-radius:12px;padding:12px;background:rgba(34,211,238,.04)}
+.sidefoot .lab{font-size:10px;letter-spacing:.22em;color:var(--mut);text-transform:uppercase}
+.wave{display:flex;gap:3px;align-items:center;height:30px;margin:8px 0}
+.wave span{flex:1;background:var(--cy);border-radius:2px;animation:wv 1.1s ease-in-out infinite;opacity:.8}
+.btn{font:inherit;color:var(--tx);background:rgba(34,211,238,.08);border:1px solid var(--bd2);border-radius:9px;padding:8px 14px;cursor:pointer;transition:.2s;letter-spacing:.04em}
+.btn:hover{background:rgba(34,211,238,.2);box-shadow:var(--glow)}
+.btn.on{background:linear-gradient(90deg,var(--cy),var(--bl));color:#031018;border-color:transparent;font-weight:700}
+.btn.sm{padding:5px 11px;font-size:13px}
+.btn.danger{border-color:rgba(251,77,106,.55);background:rgba(251,77,106,.1)}.btn.danger:hover{background:rgba(251,77,106,.25);box-shadow:0 0 16px rgba(251,77,106,.4)}
+main{margin-left:224px;padding:0 22px 90px;position:relative;z-index:1;max-width:1480px}
+.top{position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:14px;padding:12px 0;background:linear-gradient(180deg,var(--bg) 60%,transparent);flex-wrap:wrap}
+.status{display:flex;align-items:center;gap:9px;border:1px solid var(--bd2);border-radius:999px;padding:6px 16px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;background:rgba(34,211,238,.06)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--gr);box-shadow:0 0 10px var(--gr);animation:pulse 1.8s infinite;flex:none}
+.dot.off{background:var(--rd);box-shadow:0 0 10px var(--rd)}.dot.demo{background:var(--or);box-shadow:0 0 10px var(--or)}
+.clock{margin:0 auto;text-align:center;line-height:1.15}
+.clock b{display:block;font-size:24px;letter-spacing:.12em;color:var(--cy);text-shadow:0 0 16px rgba(34,211,238,.6);font-weight:600}
+.clock small{color:var(--mut);font-size:12px;letter-spacing:.1em;text-transform:capitalize}
+.sec{margin-top:22px}
+.sec>h2{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--cy);margin:0 0 12px;font-weight:600}
+.sec>h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--bd2),transparent)}
+.pn{position:relative;background:var(--pn);border:1px solid var(--bd);border-radius:14px;padding:16px;backdrop-filter:blur(6px);box-shadow:inset 0 0 40px rgba(34,211,238,.03)}
+.pn::before,.pn::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--cy);opacity:.8;pointer-events:none}
+.pn::before{left:-1px;top:-1px;border-right:0;border-bottom:0;border-top-left-radius:14px}
+.pn::after{right:-1px;bottom:-1px;border-left:0;border-top:0;border-bottom-right-radius:14px}
+.pn h3{margin:0 0 10px;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#bfe7ff;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pn h3 .tag{font-size:10px;letter-spacing:.14em;color:var(--gr);border:1px solid rgba(52,211,153,.5);border-radius:999px;padding:1px 9px}
+.pn h3 .tag.demo{color:var(--or);border-color:rgba(245,158,11,.5)}
+.sub{color:var(--mut);font-size:13px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-net{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g-net,.g3{grid-template-columns:1fr}}
+@media(max-width:900px){.side{position:static;width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;border-right:0;border-bottom:1px solid var(--bd)}
+ .logo{border:0;padding:0;margin:0}.nav{display:flex;flex-wrap:wrap;gap:4px}.nav a{padding:6px 9px;font-size:12px}.nav a span{display:none}.sidefoot{display:none}
+ main{margin-left:0;padding:0 12px 90px}.g2{grid-template-columns:1fr}.clock{margin:0}.top{position:static}}
+@media(max-width:560px){.g4{grid-template-columns:1fr}}
+/* ---------- hero ---------- */
+.hero{position:relative;min-height:440px;overflow:hidden;display:grid;place-items:center;text-align:center;padding:24px}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%}
+.hero .txt{position:relative;z-index:2;pointer-events:none}
+.hero h1{margin:0;font-size:clamp(46px,9vw,92px);letter-spacing:.34em;padding-left:.34em;font-weight:300;color:#fff;
+ text-shadow:0 0 22px rgba(34,211,238,.9),0 0 60px rgba(34,211,238,.5)}
+.hero h1 b{color:var(--cy);font-weight:600}
+.hero .tl{letter-spacing:.42em;text-transform:uppercase;color:var(--cy);font-size:clamp(11px,1.6vw,15px);margin-top:4px}
+.hero .ex{max-width:640px;margin:14px auto 0;color:#cfe6f7;font-size:clamp(14px,1.7vw,17px);text-shadow:0 2px 14px #000}
+.kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+@media(max-width:900px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{text-align:left;padding:14px 16px}
+.kpi .v{font-size:clamp(26px,3.4vw,36px);font-weight:600;color:var(--cy);text-shadow:0 0 16px rgba(34,211,238,.5);line-height:1.1}
+.kpi .v.gr{color:var(--gr);text-shadow:0 0 16px rgba(52,211,153,.45)}.kpi .v.or{color:var(--or);text-shadow:0 0 16px rgba(245,158,11,.45)}.kpi .v.vi{color:var(--vi);text-shadow:0 0 16px rgba(167,139,250,.45)}
+.kpi .t{font-size:13px;color:var(--mut);margin-top:4px}
+/* ---------- como funciona ---------- */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;position:relative}
+@media(max-width:900px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.steps{grid-template-columns:1fr}}
+.step{text-align:center;padding:18px 12px}
+.step .ic{width:62px;height:62px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-size:28px;border:1px solid var(--bd2);background:radial-gradient(circle,rgba(34,211,238,.22),transparent 70%);box-shadow:var(--glow)}
+.step.act .ic{animation:pulse 1.4s infinite;border-color:var(--cy)}
+.step b{display:block;font-size:14px;letter-spacing:.06em}.step p{margin:4px 0 0;font-size:13px;color:var(--mut)}
+.step .n{font-size:10px;letter-spacing:.3em;color:var(--cy);margin-bottom:6px}
+/* ---------- rede ---------- */
+.netwrap{position:relative;border-radius:10px;overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(34,211,238,.08),transparent 70%)}
+#mesh{display:block;width:100%;height:auto;aspect-ratio:660/350}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.ctl .lab{font-size:11px;letter-spacing:.2em;color:var(--mut);text-transform:uppercase;margin-right:4px}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--mut);margin-left:auto}
+.sw input{accent-color:var(--cy)}
+.leg{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--mut);margin-top:8px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.stat{display:grid;gap:10px}
+.st{border:1px solid var(--bd);border-radius:10px;padding:10px 12px;background:rgba(34,211,238,.04)}
+.st .l{font-size:11px;letter-spacing:.18em;color:var(--mut);text-transform:uppercase}
+.st .v{font-size:26px;font-weight:600}
+.meter{height:6px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cy),var(--gr));transition:width .5s}
+.feed{display:grid;gap:7px;max-height:238px;overflow:hidden}
+.fd{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--bd);border-radius:9px;padding:8px 10px;font-size:13px;background:rgba(34,211,238,.04);animation:in .4s}
+.fd em{font-style:normal;font-size:9px;letter-spacing:.14em;border-radius:5px;padding:2px 6px;margin-left:auto;border:1px solid;flex:none}
+.fd.info em{color:var(--cy);border-color:rgba(34,211,238,.5)}.fd.warn em{color:var(--or);border-color:rgba(245,158,11,.5)}
+.fd.bad em{color:var(--rd);border-color:rgba(251,77,106,.5)}.fd.ok em{color:var(--gr);border-color:rgba(52,211,153,.5)}
+/* ---------- ar ---------- */
+.gauge{display:grid;place-items:center;text-align:center}
+.gauge svg{width:150px;height:150px;transform:rotate(-90deg)}
+.gauge .bg{stroke:rgba(255,255,255,.08)}.gauge .fg{transition:stroke-dashoffset .8s,stroke .5s;stroke-linecap:round;filter:drop-shadow(0 0 6px currentColor)}
+.gauge .c{position:absolute;text-align:center}
+.gauge .c b{font-size:26px;display:block;line-height:1.1}.gauge .c small{color:var(--mut);font-size:11px;letter-spacing:.14em}
+.gwrap{position:relative;width:150px;height:150px}
+.gwrap .c{inset:0;display:grid;place-content:center}
+.fan{width:70px;height:70px;margin:6px auto;color:var(--mut);transition:color .4s}
+.fan.on{color:var(--gr);animation:spin .6s linear infinite;filter:drop-shadow(0 0 8px var(--gr))}
+.scale{font-size:12px;color:var(--mut);margin-top:6px}
+#spark{width:100%;height:90px;display:block}
+/* ---------- algoritmos ---------- */
+.rt{cursor:pointer;transition:.2s;padding:14px}
+.rt:hover{border-color:var(--bd2);transform:translateY(-2px)}
+.rt.sel{border-color:var(--cy);box-shadow:var(--glow)}
+.rt .hd{display:flex;align-items:center;gap:9px;font-weight:600}
+.rt .sw2{width:12px;height:12px;border-radius:3px;flex:none}
+.rt p{margin:6px 0 10px;font-size:12.5px;color:var(--mut);min-height:38px}
+.mb{display:grid;grid-template-columns:72px 1fr 56px;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin:5px 0}
+.mb .tk{height:7px;background:rgba(255,255,255,.08);border-radius:9px;overflow:hidden}.mb .tk i{display:block;height:100%;border-radius:9px;transition:width .6s}
+.mb b{color:var(--tx);text-align:right;font-weight:600}
+.badge{display:inline-block;font-size:10px;letter-spacing:.1em;border:1px solid var(--gr);color:var(--gr);border-radius:99px;padding:1px 8px;margin:6px 4px 0 0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.bars{display:grid;gap:10px;margin-top:12px}
+.bar{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;font-size:14px}
+.bar .tk{height:20px;border-radius:7px;background:rgba(255,255,255,.07);overflow:hidden}.bar .fill{height:100%;border-radius:7px;transition:width .6s;box-shadow:0 0 14px currentColor}
+.bar .val{text-align:right;font-weight:600}.bar.best .val::after{content:" ★";color:var(--or)}
+@media(max-width:560px){.bar{grid-template-columns:100px 1fr 70px}}
+.verdict{border-left:3px solid var(--cy);padding:8px 14px;background:rgba(34,211,238,.06);border-radius:0 9px 9px 0;font-size:14px;margin-top:12px}
+/* ---------- segurança ---------- */
+.shield{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.def{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.def li{display:flex;gap:10px;align-items:flex-start;font-size:13px;border:1px solid var(--bd);border-radius:9px;padding:8px 10px;background:rgba(34,211,238,.04)}
+.def li b{color:#fff}.def li span{color:var(--mut)}
+.def .ck{color:var(--gr);flex:none}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left}th{color:var(--mut);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+/* ---------- timeline ---------- */
+.tlist{display:grid;gap:6px;max-height:300px;overflow:auto}
+.ti{display:grid;grid-template-columns:54px 1fr;gap:8px;font-size:13px;border:1px solid var(--bd);border-radius:9px;padding:7px 10px;opacity:.45;transition:.3s}
+.ti.done{opacity:1;border-color:var(--bd2)}.ti b{color:var(--cy)}
+.play{display:flex;gap:12px;align-items:center;margin-top:10px}.play input{flex:1;accent-color:var(--cy)}
+/* ---------- barra inferior / apresentação ---------- */
+.bot{position:fixed;left:224px;right:0;bottom:0;z-index:18;display:flex;gap:10px;align-items:center;padding:8px 22px;background:linear-gradient(0deg,rgba(3,9,18,.97),rgba(3,9,18,.7));border-top:1px solid var(--bd);font-size:12px;color:var(--mut);flex-wrap:wrap}
+.bot span{display:flex;align-items:center;gap:7px;border:1px solid var(--bd);border-radius:8px;padding:4px 10px;background:rgba(34,211,238,.04)}
+.bot b{color:var(--tx);font-weight:600}
+@media(max-width:900px){.bot{left:0;padding:6px 10px}}
+#cap{position:fixed;left:50%;bottom:58px;transform:translate(-50%,20px);max-width:min(760px,92vw);z-index:30;opacity:0;pointer-events:none;transition:.5s;
+ background:rgba(3,14,26,.94);border:1px solid var(--cy);border-radius:14px;padding:12px 20px;text-align:center;font-size:17px;box-shadow:var(--glow)}
+#cap.show{opacity:1;transform:translate(-50%,0)}
+.hid{display:none!important}
+.note{font-size:12px;color:var(--mut);margin-top:10px}
+.loadmsg{border:1px solid var(--or);color:var(--or);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:14px}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.92)}}
+@keyframes wv{0%,100%{height:18%}50%{height:100%}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<aside class="side">
+  <div class="logo"><div class="orb"></div><div><b>P.U.R.A</b><small>Centro de comando</small></div></div>
+  <nav class="nav" id="nav">
+    <a href="#inicio" class="on"><i>◈</i><span>Visão geral</span></a>
+    <a href="#como"><i>⌬</i><span>Como funciona</span></a>
+    <a href="#rede"><i>⛓</i><span>Rede ao vivo</span></a>
+    <a href="#ar"><i>≋</i><span>Qualidade do ar</span></a>
+    <a href="#algoritmos"><i>✦</i><span>Algoritmos</span></a>
+    <a href="#seguranca"><i>⛨</i><span>Segurança</span></a>
+    <a href="#tempo"><i>◷</i><span>Linha do tempo</span></a>
+  </nav>
+  <div class="sidefoot">
+    <div class="lab">Apresentação</div>
+    <div class="wave" aria-hidden="true"></div>
+    <button class="btn" id="presBtn" style="width:100%">▶ Modo apresentação</button>
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <div class="status"><span class="dot" id="sysDot"></span><span id="sysTxt">Sistema operacional</span></div>
+    <div class="clock"><b id="clk">--:--:--</b><small id="dte"></small></div>
+    <div class="status"><span class="dot demo" id="srcDot"></span><span id="srcTxt">Dados: simulação</span></div>
+  </header>
+
+  <div class="loadmsg" id="loadmsg" hidden>Resultados não carregados. Abra pelo gateway (<code>python -m pura.server</code>) ou escolha o arquivo <code>results/results.json</code>: <input type="file" id="file" accept=".json"></div>
+
+  <!-- HERO -->
+  <section id="inicio">
+    <div class="pn hero">
+      <canvas id="globe" aria-hidden="true"></canvas>
+      <div class="txt">
+        <h1>P<b>.</b>U<b>.</b>R<b>.</b>A</h1>
+        <div class="tl">Purificação Unificada e Reativa do Ar</div>
+        <p class="ex">Sensores medem o ar. Uma rede inteligente escolhe o melhor caminho para a informação chegar, mesmo quando algo falha, e liga o ventilador na hora certa.</p>
+      </div>
+    </div>
+    <div class="kp" id="kp"></div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section class="sec" id="como">
+    <h2>Como funciona, em 4 passos</h2>
+    <div class="steps" id="steps">
+      <div class="pn step"><div class="n">PASSO 01</div><div class="ic">🌫️</div><b>O sensor mede</b><p>Um ESP32 mede CO₂, temperatura e umidade da sala.</p></div>
+      <div class="pn step"><div class="n">PASSO 02</div><div class="ic">📡</div><b>A rede escolhe o caminho</b><p>Algoritmos decidem por onde enviar, desviando de falhas e congestionamento.</p></div>
+      <div class="pn step"><div class="n">PASSO 03</div><div class="ic">🛡️</div><b>O gateway protege</b><p>Confere a assinatura de cada mensagem e bloqueia falsificações e repetições.</p></div>
+      <div class="pn step"><div class="n">PASSO 04</div><div class="ic">🌀</div><b>O ventilador age</b><p>Se o ar piora, um comando assinado liga o ventilador. Quando melhora, desliga.</p></div>
+    </div>
+  </section>
+
+  <!-- REDE -->
+  <section class="sec" id="rede">
+    <h2>Rede ao vivo · simulação interativa</h2>
+    <div class="grid g-net">
+      <div class="pn">
+        <h3>Malha de sensores <span class="tag demo">SIMULAÇÃO DIDÁTICA</span></h3>
+        <div class="netwrap"><canvas id="mesh" width="1320" height="700"></canvas></div>
+        <div class="leg">
+          <span><i style="background:#22d3ee"></i>dados dos sensores</span><span><i style="background:#34d399"></i>comando do ventilador</span>
+          <span><i style="background:#fb4d6a"></i>perdido / ataque</span><span><i style="background:#f59e0b"></i>zona não confiável</span>
+        </div>
+        <div class="ctl"><span class="lab">Roteador</span><div class="seg" id="modeSeg"></div></div>
+        <div class="ctl"><span class="lab">Provocar</span>
+          <button class="btn sm danger" id="bFail">✕ Derrubar enlace</button>
+          <button class="btn sm" id="bSurge">⇡ Pico de tráfego</button>
+          <button class="btn sm danger" id="bAtk">☠ Atacar o gateway</button>
+          <button class="btn sm" id="bHeal">↺ Restaurar</button>
+          <label class="sw"><input type="checkbox" id="auto" checked> eventos automáticos</label>
+        </div>
+        <div class="note">Visualização didática: mostra a ideia de cada estratégia. Os números oficiais vêm das 30 simulações completas, mais abaixo.</div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="pn stat">
+          <h3>Desempenho agora</h3>
+          <div class="st"><div class="l">Dados entregues</div><div class="v" id="sDel">–</div><div class="meter"><i id="mDel"></i></div></div>
+          <div class="st"><div class="l">Atraso médio (relativo)</div><div class="v" id="sLat">–</div></div>
+          <div class="st"><div class="l">Passou pela zona de risco</div><div class="v" id="sRisk">–</div></div>
+        </div>
+        <div class="pn"><h3>Feed de eventos</h3><div class="feed" id="feed"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AR -->
+  <section class="sec" id="ar">
+    <h2>Qualidade do ar · telemetria</h2>
+    <div class="grid g4">
+      <div class="pn gauge"><h3 style="width:100%">CO₂ <span class="tag demo" id="airTag">DEMO</span></h3>
+        <div class="gwrap"><svg viewBox="0 0 150 150"><circle class="bg" cx="75" cy="75" r="62" fill="none" stroke-width="10"/><circle class="fg" id="gCo2" cx="75" cy="75" r="62" fill="none" stroke-width="10" stroke="#22d3ee" style="color:#22d3ee"/></svg>
+          <div class="c"><b id="vCo2">–</b><small>PPM</small></div></div><div class="scale" id="co2txt"></div></div>
+      <div class="pn gauge"><h3 style="width:100%">Temperatura</h3>
+        <div class="gwrap"><svg viewBox="0 0 150 150"><circle class="bg" cx="75" cy="75" r="62" fill="none" stroke-width="10"/><circle class="fg" id="gT" cx="75" cy="75" r="62" fill="none" stroke="#a78bfa" stroke-width="10" style="color:#a78bfa"/></svg>
+          <div class="c"><b id="vT">–</b><small>°C</small></div></div></div>
+      <div class="pn gauge"><h3 style="width:100%">Umidade</h3>
+        <div class="gwrap"><svg viewBox="0 0 150 150"><circle class="bg" cx="75" cy="75" r="62" fill="none" stroke-width="10"/><circle class="fg" id="gH" cx="75" cy="75" r="62" fill="none" stroke="#3b82f6" stroke-width="10" style="color:#3b82f6"/></svg>
+          <div class="c"><b id="vH">–</b><small>%</small></div></div></div>
+      <div class="pn gauge"><h3 style="width:100%">Ventilador</h3>
+        <svg class="fan" id="fan" viewBox="0 0 64 64" style="transform:none"><g fill="currentColor"><path d="M32 30c-2-9 1-16 8-18 6-1 8 5 4 10-3 4-7 7-12 8z"/><path d="M34 32c9-2 16 1 18 8 1 6-5 8-10 4-4-3-7-7-8-12z"/><path d="M32 34c2 9-1 16-8 18-6 1-8-5-4-10 3-4 7-7 12-8z"/><path d="M30 32c-9 2-16-1-18-8-1-6 5-8 10-4 4 3 7 7 8 12z"/><circle cx="32" cy="32" r="4"/></g></svg>
+        <b id="fanTxt" style="font-size:20px">–</b><div class="scale">Liga acima de 1000 ppm<br>Desliga abaixo de 800 ppm</div></div>
+    </div>
+    <div class="pn" style="margin-top:14px"><h3>CO₂ ao longo do tempo (ppm)</h3><svg id="spark" viewBox="0 0 900 90" preserveAspectRatio="none"></svg>
+      <div class="note" id="airNote"></div></div>
+  </section>
+
+  <!-- ALGORITMOS -->
+  <section class="sec" id="algoritmos">
+    <h2>Algoritmos · quem escolhe melhor o caminho?</h2>
+    <div class="ctl" style="margin:0 0 12px"><span class="lab">Pico de tráfego</span><div class="seg" id="surgeSeg"></div></div>
+    <div class="grid g3" id="rtCards" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr))"></div>
+    <div class="pn" style="margin-top:14px">
+      <h3>Comparação direta</h3>
+      <div class="seg" id="metSeg"></div>
+      <div class="sub" id="metHelp" style="margin-top:8px"></div>
+      <div class="bars" id="bars"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </section>
+
+  <!-- SEGURANÇA -->
+  <section class="sec" id="seguranca">
+    <h2>Segurança · gateway protegido</h2>
+    <div class="grid g2">
+      <div class="pn"><h3>Monitor do gateway <span class="tag demo" id="secTag">DEMO</span></h3>
+        <div class="shield" id="shield"></div>
+        <div id="alerts" style="margin-top:12px"></div>
+        <div class="note">Rode <code>tools/security_demo.py</code> e veja os números subirem aqui em tempo real.</div></div>
+      <div class="pn"><h3>7 vulnerabilidades encontradas e corrigidas</h3>
+        <ul class="def">
+          <li><span class="ck">✔</span><div><b>Replay de mensagem antiga</b><br><span>Cada boot do sensor tem seu próprio contador.</span></div></li>
+          <li><span class="ck">✔</span><div><b>Segredo padrão público</b><br><span>O gateway recusa subir sem segredo forte.</span></div></li>
+          <li><span class="ck">✔</span><div><b>Força bruta e inundação</b><br><span>IP abusivo é bloqueado automaticamente (429).</span></div></li>
+          <li><span class="ck">✔</span><div><b>Tráfego em claro</b><br><span>TLS na nuvem e verificação de certificado.</span></div></li>
+          <li><span class="ck">✔</span><div><b>IP forjado (X-Forwarded-For)</b><br><span>Só confia no que o proxy confiável acrescenta.</span></div></li>
+          <li><span class="ck">✔</span><div><b>Replay após reinício</b><br><span>Carimbo de tempo assinado, janela de 120 s.</span></div></li>
+          <li><span class="ck">✔</span><div><b>Comando para outro nó</b><br><span>O comando assinado só vale para o nó de destino.</span></div></li>
+        </ul></div>
+    </div>
+  </section>
+
+  <!-- TEMPO -->
+  <section class="sec" id="tempo">
+    <h2>Linha do tempo · um experimento passo a passo</h2>
+    <div class="grid g2" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+      <div class="pn"><h3>Atraso (ms) durante os eventos <span class="tag">SEMENTE 0 · PICO ×2.0</span></h3>
+        <svg id="ts" viewBox="0 0 620 250" width="100%"></svg>
+        <div class="ctl" id="tsChips"></div>
+        <div class="play"><button class="btn sm" id="playBtn">▶</button><input type="range" id="tick" min="0" max="59" value="0" aria-label="Tempo"><span class="sub" id="tickLab" style="min-width:60px">tick 0</span></div></div>
+      <div class="pn"><h3>Eventos do experimento</h3><div class="tlist" id="tlist"></div></div>
+    </div>
+  </section>
+
+  <footer class="note" style="margin-top:26px">P.U.R.A · Purificação Unificada e Reativa do Ar. Os resultados de roteamento vêm de simulação com dados sintéticos (30 sementes por cenário). O nó S1 é um ESP32 real.</footer>
+</main>
+
+<div class="bot">
+  <span>◉ Nó S1 <b>ESP32</b></span>
+  <span>⛨ Gateway <b id="bGw">verificando…</b></span>
+  <span>⛓ Roteador <b id="bMode">–</b></span>
+  <span style="margin-left:auto">Dados do ar: <b id="bSrc">demonstração</b></span>
+</div>
+<div id="cap" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const f=(v,d)=>Number.isFinite(v)?v.toFixed(d):'–';
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NAMES={static:'Rota fixa',dijkstra:'Dijkstra',dijkstra_residual:'Dijkstra c/ capacidade',aco:'ACO (formigas)',memetic:'Memético'};
+const DESC={static:'Caminho decidido uma vez e nunca muda. Referência.',dijkstra:'Menor caminho, recalculado quando algo muda.',dijkstra_residual:'Menor caminho considerando a banda que sobra.',aco:'Formigas virtuais testam rotas e reforçam as boas.',memetic:'Evolui um conjunto de soluções e refina a melhor.'};
+const COL={static:'#8a99a8',dijkstra:'#fb4d6a',dijkstra_residual:'#f59e0b',aco:'#22d3ee',memetic:'#3b82f6'};
+const MODE_OF={static:'static',dijkstra:'dijkstra',dijkstra_residual:'smart',aco:'smart',memetic:'smart'};
+
+/* ================= relógio + wave ================= */
+(function(){
+  const w=$('.wave');for(let i=0;i<22;i++){const s=document.createElement('span');s.style.animationDelay=(i*70)+'ms';s.style.animationDuration=(0.7+Math.random()*.8)+'s';w.appendChild(s)}
+  function t(){const d=new Date();$('#clk').textContent=d.toLocaleTimeString('pt-BR');$('#dte').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+  t();setInterval(t,1000);
+})();
+
+/* ================= globo hero ================= */
+(function(){
+  const cv=$('#globe'),ctx=cv.getContext('2d');let W,H,dpr;
+  function size(){dpr=Math.min(devicePixelRatio||1,2);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+  size();addEventListener('resize',size);
+  const N=300,pts=[];for(let i=0;i<N;i++){const y=1-2*(i+.5)/N,r=Math.sqrt(1-y*y),a=i*2.399963;pts.push([Math.cos(a)*r,y,Math.sin(a)*r])}
+  const pairs=[];for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const d=(pts[i][0]-pts[j][0])**2+(pts[i][1]-pts[j][1])**2+(pts[i][2]-pts[j][2])**2;if(d<.075)pairs.push([i,j])}
+  const sats=[...Array(6)].map((_,i)=>({a:Math.random()*6.28,s:.2+Math.random()*.5,r:1.25+i*.08,tilt:(i%3-1)*.5}));
+  let ang=0,last=performance.now();
+  function frame(now){
+    const dt=(now-last)/1000;last=now;if(!REDUCE)ang+=dt*.25;
+    ctx.clearRect(0,0,W,H);const R=Math.min(W*.3,H*.42),cx=W/2,cy=H/2;
+    const g=ctx.createRadialGradient(cx,cy,R*.2,cx,cy,R*1.5);g.addColorStop(0,'rgba(34,211,238,.18)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const ca=Math.cos(ang),sa=Math.sin(ang),tl=.35,ct=Math.cos(tl),st=Math.sin(tl);
+    const P=pts.map(p=>{let x=p[0]*ca+p[2]*sa,z=-p[0]*sa+p[2]*ca,y=p[1];const y2=y*ct-z*st,z2=y*st+z*ct;return[cx+x*R,cy+y2*R,z2]});
+    ctx.lineWidth=.8;
+    for(const [i,j] of pairs){const a=P[i],b=P[j],al=(a[2]+b[2])/2;ctx.strokeStyle=`rgba(80,200,255,${.08+.3*(al+1)/2})`;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+    for(const p of P){const al=.25+.75*(p[2]+1)/2;ctx.fillStyle=`rgba(190,240,255,${al})`;ctx.beginPath();ctx.arc(p[0],p[1],1+1.4*al,0,6.28);ctx.fill()}
+    // anéis orbitais + satélites
+    ctx.strokeStyle='rgba(34,211,238,.35)';ctx.lineWidth=1;
+    for(let k=0;k<3;k++){ctx.beginPath();ctx.ellipse(cx,cy,R*(1.3+k*.12),R*(.28+k*.04),(k-1)*.35,0,6.28);ctx.stroke()}
+    for(const s of sats){s.a+=dt*s.s;const x=Math.cos(s.a)*R*s.r,y=Math.sin(s.a)*R*s.r*.22;const rx=x*Math.cos(s.tilt)-y*Math.sin(s.tilt),ry=x*Math.sin(s.tilt)+y*Math.cos(s.tilt);
+      ctx.fillStyle='#fff';ctx.shadowColor='#22d3ee';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(cx+rx,cy+ry,2.6,0,6.28);ctx.fill();ctx.shadowBlur=0}
+    requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+})();
+
+/* ================= navegação ativa ================= */
+(function(){
+  const links=$$('#nav a'),map={};links.forEach(a=>map[a.getAttribute('href').slice(1)]=a);
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('on'));map[e.target.id]&&map[e.target.id].classList.add('on')}})},{rootMargin:'-35% 0px -55% 0px'});
+  Object.keys(map).forEach(id=>{const el=document.getElementById(id);el&&io.observe(el)});
+})();
+
+/* ================= feed ================= */
+function feed(txt,kind,tag){
+  const el=document.createElement('div');el.className='fd '+(kind||'info');el.innerHTML=`<span>${esc(txt)}</span><em>${esc(tag||'INFO')}</em>`;
+  const box=$('#feed');box.prepend(el);while(box.children.length>6)box.lastChild.remove();
+}
+
+/* ================= SIMULADOR DA MALHA ================= */
+const POS={G:[330,32],C1:[140,100],C2:[330,100],C3:[520,100],U1:[235,170],U2:[425,170],E1:[80,240],E2:[240,240],E3:[420,240],E4:[580,240],
+ S1:[50,320],S2:[150,320],S3:[300,320],S4:[400,320],S5:[500,320],S6:[610,320]};
+const LINKS=[["G","C1",3,600,.98],["G","C2",3,600,.98],["G","C3",3,600,.98],["C1","C2",4,500,.97],["C2","C3",4,500,.97],["C1","E1",7,400,.94],["C1","E2",7,400,.94],
+ ["C2","E2",7,400,.94],["C2","E3",7,400,.94],["C3","E3",7,400,.94],["C3","E4",7,400,.94],["E1","E2",5,300,.9],["E3","E4",5,300,.9],
+ ["S1","E1",11,300,.88],["S2","E1",11,300,.88],["S2","E2",11,300,.88],["S3","E2",11,300,.88],["S3","E3",11,300,.88],["S4","E3",11,300,.88],["S5","E3",11,300,.88],["S5","E4",11,300,.88],["S6","E4",11,300,.88],
+ ["E1","U1",3,250,.4],["U1","C2",3,250,.4],["U1","G",2,250,.35],["E4","U2",3,250,.45],["U2","C2",3,250,.4],["U1","U2",2,250,.35],["S1","U1",6,200,.5],["S6","U2",6,200,.5]]
+ .map(([a,b,lat,cap,tr])=>({a,b,lat,cap,tr,k:[a,b].sort().join('|'),capU:cap/70,load:0,down:false}));
+const NODES=Object.keys(POS),isU=n=>n[0]==='U';
+const adj={};NODES.forEach(n=>adj[n]=[]);LINKS.forEach(l=>{adj[l.a].push([l.b,l]);adj[l.b].push([l.a,l])});
+const SIM={mode:'smart',packets:[],fx:[],stats:[],surgeUntil:0,fanUntil:0,fanSt:0,atk:0,shield:0,lastEvt:0};
+const FAILABLE=["G|C1","G|C2","G|C3","C1|E1","C2|E2","C2|E3","C3|E3","C3|E4","C1|C2","C2|C3","E1|E2","E3|E4"].map(k=>LINKS.find(l=>l.k===k.split('|').sort().join('|')));
+
+function cost(l,mode,restricted){
+  if(l.down)return Infinity;
+  if(restricted&&(isU(l.a)||isU(l.b)))return Infinity;
+  if(mode==='smart')return l.lat*(1+2.5*l.load/l.capU)+30*(1-l.tr);
+  return l.lat;
+}
+function findPath(src,dst,mode,restricted){
+  const d={},prev={},seen=new Set();NODES.forEach(n=>d[n]=Infinity);d[src]=0;
+  while(true){let u=null;for(const n of NODES)if(!seen.has(n)&&d[n]<Infinity&&(u===null||d[n]<d[u]))u=n;if(u===null||u===dst)break;seen.add(u);
+    for(const [v,l] of adj[u]){const c=cost(l,mode,restricted);if(d[u]+c<d[v]){d[v]=d[u]+c;prev[v]=[u,l]}}}
+  if(d[dst]===Infinity)return null;const path=[];let n=dst;while(n!==src){const [p,l]=prev[n];path.unshift({from:p,to:n,l});n=p}return path;
+}
+const FLOWS=[...[1,2,3,4,5,6].map(i=>({id:'T'+i,src:'S'+i,dst:'G',kind:'tel',every:1100,restricted:false})),
+ {id:'B1',src:'S3',dst:'G',kind:'bulk',every:420,restricted:false},{id:'B2',src:'S5',dst:'G',kind:'bulk',every:420,restricted:false},
+ {id:'K1',src:'G',dst:'S1',kind:'ctl',every:1700,restricted:true},{id:'K2',src:'G',dst:'S6',kind:'ctl',every:1700,restricted:true}];
+FLOWS.forEach((fl,i)=>{fl.next=500+i*130;fl.fixed=findPath(fl.src,fl.dst,'dijkstra',fl.restricted)});
+
+function emit(fl,now){
+  const mode=SIM.mode;let path=mode==='static'?fl.fixed:findPath(fl.src,fl.dst,mode,fl.restricted);
+  if(!path){SIM.fx.push({t:'x',n:fl.src,born:now});record(false,0,false,fl.kind);return}
+  SIM.packets.push({fl,path,i:0,t:0,born:now,lat:0,risky:path.some(s=>isU(s.from)||isU(s.to)),kind:fl.kind,entered:false});
+}
+function record(ok,lat,risky,kind){SIM.stats.push({ok,lat,risky,kind});if(SIM.stats.length>140)SIM.stats.shift()}
+function step(now,dt){
+  const surge=now<SIM.surgeUntil?3:1;
+  for(const fl of FLOWS){if(now>=fl.next){emit(fl,now);fl.next=now+fl.every/(fl.kind==='ctl'?1:surge)*(0.8+Math.random()*.4)}}
+  LINKS.forEach(l=>l.load=0);
+  for(const p of SIM.packets)if(p.entered&&!p.dead)p.path[p.i].l.load++;
+  for(const p of SIM.packets){
+    if(p.dead||p.done)continue;const seg=p.path[p.i],l=seg.l;
+    if(!p.entered){
+      if(l.down){kill(p,now,seg.from);continue}
+      if(l.load>l.capU*1.9&&Math.random()<.5){kill(p,now,seg.from);continue}
+      p.entered=true;const over=Math.max(0,l.load-l.capU);p.lat+=l.lat*(1+over*.5);
+    }
+    if(l.down){kill(p,now,seg.from,.5*p.t);continue}
+    const over=Math.max(0,l.load-l.capU),speed=1/(l.lat*38+60)/(1+over*.45);
+    p.t+=dt*speed;
+    if(p.t>=1){p.i++;p.t=0;p.entered=false;if(p.i>=p.path.length){p.done=true;arrive(p,now)}}
+  }
+  SIM.packets=SIM.packets.filter(p=>!p.dead&&!p.done);
+  SIM.fx=SIM.fx.filter(e=>now-e.born<900);
+}
+function kill(p,now,at){p.dead=true;const a=POS[p.path[p.i].from],b=POS[p.path[p.i].to];SIM.fx.push({t:'x',x:a[0]+(b[0]-a[0])*p.t,y:a[1]+(b[1]-a[1])*p.t,born:now});record(false,0,false,p.kind)}
+function arrive(p,now){
+  record(true,p.lat,p.risky,p.kind);
+  const dst=p.path[p.path.length-1].to;SIM.fx.push({t:'ring',n:dst,born:now,c:p.kind==='ctl'?'#34d399':'#22d3ee'});
+  if(p.kind==='ctl'&&dst==='S1'){SIM.fanUntil=now+2200}
+}
+function statsView(){
+  const s=SIM.stats.filter(x=>x.kind!=='ctl'||true);if(s.length<8)return;
+  const ok=s.filter(x=>x.ok),del=ok.length/s.length,lat=ok.length?ok.reduce((a,b)=>a+b.lat,0)/ok.length:0;
+  const tel=ok.filter(x=>x.kind!=='ctl'),risk=tel.length?tel.filter(x=>x.risky).length/tel.length:0;
+  $('#sDel').textContent=f(del*100,0)+'%';$('#sDel').style.color=del>.9?'var(--gr)':del>.7?'var(--or)':'var(--rd)';
+  $('#mDel').style.width=del*100+'%';$('#sLat').textContent=f(lat,0)+' ms';$('#sRisk').textContent=f(risk*100,0)+'%';
+  $('#sRisk').style.color=risk>.3?'var(--or)':'var(--gr)';
+}
+
+/* render */
+const mesh=$('#mesh'),mx=mesh.getContext('2d');
+function draw(now){
+  const sc=mesh.width/660;mx.setTransform(sc,0,0,sc,0,0);mx.clearRect(0,0,660,350);
+  // zona não confiável
+  const zg=mx.createRadialGradient(330,170,10,330,170,150);zg.addColorStop(0,'rgba(245,158,11,.16)');zg.addColorStop(1,'transparent');mx.fillStyle=zg;mx.fillRect(130,120,400,100);
+  mx.fillStyle='rgba(245,158,11,.7)';mx.font='10px Segoe UI,sans-serif';mx.textAlign='center';mx.fillText('ZONA NÃO CONFIÁVEL',330,201);
+  for(const l of LINKS){const a=POS[l.a],b=POS[l.b],u=isU(l.a)||isU(l.b);
+    mx.beginPath();mx.moveTo(a[0],a[1]);mx.lineTo(b[0],b[1]);mx.lineWidth=l.down?2.5:1.4;
+    mx.setLineDash(l.down?[5,5]:[]);const ld=Math.min(1,l.load/l.capU);
+    mx.strokeStyle=l.down?'#fb4d6a':u?`rgba(245,158,11,${.28+ld*.4})`:`rgba(60,190,255,${.22+ld*.55})`;mx.stroke();mx.setLineDash([]);
+    if(l.down){const mxm=(a[0]+b[0])/2,mym=(a[1]+b[1])/2;mx.fillStyle='#fb4d6a';mx.font='bold 13px sans-serif';mx.fillText('✕',mxm,mym+4)}}
+  // pacotes
+  for(const p of SIM.packets){const seg=p.path[p.i],a=POS[seg.from],b=POS[seg.to],x=a[0]+(b[0]-a[0])*p.t,y=a[1]+(b[1]-a[1])*p.t;
+    const c=p.kind==='ctl'?'#34d399':p.kind==='bulk'?'#a78bfa':'#22d3ee';
+    const tx=a[0]+(b[0]-a[0])*Math.max(0,p.t-.18),ty=a[1]+(b[1]-a[1])*Math.max(0,p.t-.18);
+    const g=mx.createLinearGradient(tx,ty,x,y);g.addColorStop(0,'transparent');g.addColorStop(1,c);mx.strokeStyle=g;mx.lineWidth=2.4;mx.beginPath();mx.moveTo(tx,ty);mx.lineTo(x,y);mx.stroke();
+    mx.fillStyle=c;mx.shadowColor=c;mx.shadowBlur=10;mx.beginPath();mx.arc(x,y,p.kind==='ctl'?3.6:2.8,0,6.28);mx.fill();mx.shadowBlur=0}
+  // nós
+  for(const n of NODES){const [x,y]=POS[n];const col=n==='G'?'#22d3ee':isU(n)?'#f59e0b':n[0]==='C'?'#3b82f6':n[0]==='E'?'#8aa0b8':'#34d399';
+    const pulse=REDUCE?0:Math.sin(now/500+x)*1.2;
+    mx.shadowColor=col;mx.shadowBlur=14;mx.fillStyle=col;mx.beginPath();mx.arc(x,y,(n==='G'?13:10)+pulse*.4,0,6.28);mx.fill();mx.shadowBlur=0;
+    mx.fillStyle='#031018';mx.font='bold 9px Segoe UI,sans-serif';mx.textAlign='center';mx.fillText(n,x,y+3.2);
+    if(n==='S1'){mx.strokeStyle='#fff';mx.lineWidth=1.5;mx.beginPath();mx.arc(x,y,13.5,0,6.28);mx.stroke();mx.fillStyle='#bfe7ff';mx.font='9px sans-serif';mx.fillText('ESP32 real',x,y+25)}
+    if(n==='G'){mx.fillStyle='#bfe7ff';mx.font='9px sans-serif';mx.fillText('GATEWAY',x+40,y+3)}}
+  // escudo do gateway
+  if(SIM.shield>now){const k=(SIM.shield-now)/1200,r=18+(1-k)*26;mx.strokeStyle=`rgba(251,77,106,${k})`;mx.lineWidth=3;mx.beginPath();mx.arc(POS.G[0],POS.G[1],r,0,6.28);mx.stroke();
+    mx.fillStyle=`rgba(251,77,106,${k})`;mx.font='bold 11px sans-serif';mx.fillText('BLOQUEADO',POS.G[0],POS.G[1]-26-(1-k)*8)}
+  // ventilador junto a S1
+  const on=now<SIM.fanUntil;mx.save();mx.translate(50,290);if(on)mx.rotate(now/90);
+  mx.strokeStyle=on?'#34d399':'#52667a';mx.lineWidth=2.2;for(let i=0;i<4;i++){mx.rotate(1.5708);mx.beginPath();mx.ellipse(0,-6,3,6,0,0,6.28);mx.stroke()}mx.restore();
+  // efeitos
+  for(const e of SIM.fx){const k=(now-e.born)/900;
+    if(e.t==='x'){const x=e.x??POS[e.n][0],y=e.y??POS[e.n][1];mx.strokeStyle=`rgba(251,77,106,${1-k})`;mx.lineWidth=2;mx.beginPath();mx.arc(x,y,4+k*14,0,6.28);mx.stroke()}
+    else{const [x,y]=POS[e.n];mx.strokeStyle=e.c;mx.globalAlpha=1-k;mx.lineWidth=2;mx.beginPath();mx.arc(x,y,12+k*18,0,6.28);mx.stroke();mx.globalAlpha=1}}
+}
+let lastT=performance.now(),statT=0;
+function loop(now){const dt=Math.min(60,now-lastT);lastT=now;step(now,dt);draw(now);if(now-statT>500){statT=now;statsView();fanSync(now)}requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+let fanPrev=false;function fanSync(now){const on=now<SIM.fanUntil;if(on&&!fanPrev)feed('Comando assinado entregue ao ESP32 (S1): ventilador ligado','ok','OK');fanPrev=on}
+
+/* controles */
+const MODES=[['static','Rota fixa'],['dijkstra','Dijkstra'],['smart','Inteligente (ACO · Memético)']];
+function setMode(m,silent){SIM.mode=m;$('#modeSeg').innerHTML=MODES.map(([k,l])=>`<button class="btn sm ${k===m?'on':''}" data-k="${k}">${l}</button>`).join('');
+  $('#bMode').textContent=MODES.find(x=>x[0]===m)[1];if(!silent)feed('Roteador alterado para '+MODES.find(x=>x[0]===m)[1],'info','INFO');
+  $$('#rtCards .rt').forEach(c=>c.classList.toggle('sel',MODE_OF[c.dataset.n]===m))}
+$('#modeSeg').onclick=e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.k)};
+function failLink(){const up=FAILABLE.filter(l=>!l.down);if(up.length<=6)return;const l=up[Math.floor(Math.random()*up.length)];l.down=true;feed(`Enlace ${l.a}–${l.b} caiu`,'bad','FALHA');
+  setTimeout(()=>{if(l.down){l.down=false;feed(`Enlace ${l.a}–${l.b} recuperado`,'ok','OK')}},9000)}
+function surge(){SIM.surgeUntil=performance.now()+7000;feed('Pico de tráfego: 3× mais mensagens','warn','ALERTA')}
+function attack(){const now=performance.now();SIM.shield=now+1200;SIM.atk++;feed('Assinatura inválida detectada e descartada (401). Reincidente: IP bloqueado (429)','bad','ATAQUE');
+  for(let i=0;i<5;i++)setTimeout(()=>{const t=performance.now();SIM.packets.push({fl:{},path:[{from:'U1',to:'G',l:LINKS.find(l=>l.k==='G|U1')}],i:0,t:0,born:t,lat:0,risky:false,kind:'atk',entered:true,atk:true})},i*120)}
+$('#bFail').onclick=failLink;$('#bSurge').onclick=surge;$('#bAtk').onclick=attack;
+$('#bHeal').onclick=()=>{LINKS.forEach(l=>l.down=false);SIM.surgeUntil=0;feed('Rede restaurada','ok','OK')};
+setInterval(()=>{if(!$('#auto').checked||document.hidden)return;const r=Math.random();r<.55?failLink():r<.85?surge():attack()},7000);
+// pacotes de ataque: são "perdidos" ao chegar no G (bloqueados)
+const _arrive=arrive;arrive=function(p,now){if(p.atk){SIM.fx.push({t:'x',n:'G',born:now});return}_arrive(p,now)};
+const _rec=record;
+
+/* ================= AR (telemetria real ou demo) ================= */
+const AIR={ppm:[],real:false,fan:false,t0:performance.now()};
+function ring(id,frac,color){const c=$(id);const C=2*Math.PI*62;c.style.strokeDasharray=C;c.style.strokeDashoffset=C*(1-Math.max(0,Math.min(1,frac)));c.style.stroke=color;c.style.color=color}
+function airRender(ppm,t,h,fan,series){
+  $('#vCo2').textContent=f(ppm,0);$('#vT').textContent=f(t,1);$('#vH').textContent=f(h,0);
+  const col=ppm>=1000?'#fb4d6a':ppm>=800?'#f59e0b':'#34d399';ring('#gCo2',ppm/2000,col);ring('#gT',t/50,'#a78bfa');ring('#gH',h/100,'#3b82f6');
+  $('#co2txt').textContent=ppm>=1000?'Ar abaixo do ideal: ventilando':ppm>=800?'Atenção: ar carregando':'Ar em boa qualidade';$('#co2txt').style.color=col;
+  $('#fan').classList.toggle('on',fan);$('#fanTxt').textContent=fan?'LIGADO':'DESLIGADO';$('#fanTxt').style.color=fan?'var(--gr)':'var(--mut)';
+  if(series.length>1){const lo=Math.min(...series,700)-30,hi=Math.max(...series,1100)+30,x=i=>900*i/(series.length-1),y=v=>86-82*(v-lo)/(hi-lo);
+    const yl=v=>y(v);$('#spark').innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22d3ee" stop-opacity=".35"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>
+    <line x1="0" x2="900" y1="${yl(1000)}" y2="${yl(1000)}" stroke="#fb4d6a" stroke-dasharray="5 5" opacity=".6"/><line x1="0" x2="900" y1="${yl(800)}" y2="${yl(800)}" stroke="#34d399" stroke-dasharray="5 5" opacity=".5"/>
+    <polygon fill="url(#sg)" points="0,90 ${series.map((v,i)=>x(i)+','+y(v)).join(' ')} 900,90"/><polyline fill="none" stroke="#22d3ee" stroke-width="2.2" vector-effect="non-scaling-stroke" points="${series.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>`}
+}
+function setSource(real){AIR.real=real;const tg=$('#airTag');tg.textContent=real?'AO VIVO · ESP32':'DEMO';tg.className='tag'+(real?'':' demo');
+  $('#srcDot').className='dot'+(real?'':' demo');$('#srcTxt').textContent=real?'Dados reais do ESP32':'Dados: demonstração';$('#bSrc').textContent=real?'ESP32 (ao vivo)':'demonstração';
+  $('#airNote').textContent=real?'Leituras reais do sensor, assinadas e verificadas pelo gateway. Linha vermelha: limite para ligar (1000 ppm); verde: para desligar (800 ppm).':'Sem ESP32 conectado: exibindo uma demonstração gerada para ilustrar o painel. Linhas: limites de ligar (1000 ppm) e desligar (800 ppm).'}
+let demoFan=false;
+const demoAt=t=>880+330*Math.sin(t/14)+20*Math.sin(t/3.1)+(Math.random()-.5)*14;
+function demoTick(){if(!AIR.ppm.length)for(let i=100;i>0;i--)AIR.ppm.push(demoAt(((performance.now()-AIR.t0)/1000)-i*2.5));const t=(performance.now()-AIR.t0)/1000,ppm=880+330*Math.sin(t/14)+20*Math.sin(t/3.1)+(Math.random()-.5)*14;
+  if(!demoFan&&ppm>=1000)demoFan=true;else if(demoFan&&ppm<=800)demoFan=false;
+  AIR.ppm.push(ppm);if(AIR.ppm.length>120)AIR.ppm.shift();airRender(ppm,26.5+1.5*Math.sin(t/30),52+6*Math.sin(t/22),demoFan,AIR.ppm)}
+async function poll(){
+  try{
+    const d=await (await fetch('/api/telemetry',{cache:'no-store'})).json();$('#sysDot').className='dot';$('#sysTxt').textContent='Sistema operacional';$('#bGw').textContent='online';
+    const s=d.samples,l=s[s.length-1],c=d.counters;
+    if(l&&l.ppm!=null){setSource(true);const ser=s.map(x=>x.ppm).filter(x=>x!=null);const fan=Object.values(d.fan||{})[0]||false;
+      airRender(Number(l.ppm),Number(l.t??0),Number(l.h??0),!!fan,ser)}
+    else{if(AIR.real)setSource(false);if(!AIR.real&&!AIR._d){setSource(false);AIR._d=1}demoTick()}
+    shield(c,null,!!l);
+    const al=await (await fetch('/api/alerts',{cache:'no-store'})).json();shield(c,al,!!l);
+  }catch(e){$('#sysDot').className='dot off';$('#sysTxt').textContent='Gateway offline';$('#bGw').textContent='offline (modo demo)';setSource(false);demoTick();shield(null,null,false)}
+  setTimeout(poll,2500);
+}
+function shield(c,al,real){
+  const tg=$('#secTag');tg.textContent=c?'AO VIVO':'DEMO';tg.className='tag'+(c?'':' demo');
+  const v=c||{accepted:0,bad_signature:0,replay:0,bad_request:0};
+  $('#shield').innerHTML=[['Aceitas',v.accepted,'var(--gr)'],['Assinatura inválida',v.bad_signature,v.bad_signature?'var(--rd)':'var(--tx)'],['Replay bloqueado',v.replay,v.replay?'var(--rd)':'var(--tx)'],['Requisição inválida',v.bad_request,'var(--tx)']]
+   .map(([l,n,c2])=>`<div class="st"><div class="l">${l}</div><div class="v" style="color:${c2}">${n}</div></div>`).join('');
+  if(al){const sev={high:'var(--rd)',medium:'var(--or)',low:'var(--mut)'};
+    $('#alerts').innerHTML=(al.blocked.length?`<p style="color:var(--rd);margin:0 0 8px">IPs bloqueados: ${al.blocked.map(esc).join(', ')}</p>`:'<p style="color:var(--gr);margin:0 0 8px">Nenhum IP bloqueado.</p>')
+     +(al.alerts.length?'<table><tr><th>Hora</th><th>Tipo</th><th>Nível</th><th>Origem</th></tr>'+al.alerts.slice(-6).reverse().map(a=>`<tr><td>${new Date(a.ts*1000).toLocaleTimeString('pt-BR')}</td><td>${esc(a.kind)}</td><td style="color:${sev[a.severity]||''}">${esc(a.severity)}</td><td>${esc(a.source)}</td></tr>`).join('')+'</table>':'<p class="sub" style="margin:0">Nenhum alerta no momento.</p>')}
+  else if(!c)$('#alerts').innerHTML='<p class="sub" style="margin:0">Gateway indisponível. Rode <code>python -m pura.server</code>.</p>'
+}
+
+/* ================= RESULTADOS ================= */
+let R=null;const S={surge:null,met:'lat_p95',on:new Set(['static','dijkstra','dijkstra_residual','aco','memetic']),tick:0,timer:null,tsOn:new Set(['dijkstra','dijkstra_residual','aco','memetic'])};
+const METRICS={lat_p95:{t:'Tempo de resposta',u:' ms',d:1,low:1,h:'Em 95% das vezes o dado chega dentro deste tempo. Menor é melhor.'},
+ goodput:{t:'Dados entregues',u:'%',d:1,low:0,pct:1,h:'Fração do tráfego que realmente chega ao destino. Maior é melhor.'},
+ J:{t:'Custo total',u:'',d:0,low:1,h:'Nota geral: soma de atraso, risco dos enlaces e penalidades. Menor é melhor.'},
+ compute_ms:{t:'Tempo para decidir',u:' ms',d:1,low:1,h:'Quanto o algoritmo demora para escolher as rotas. É o preço da inteligência.'}};
+const EVT={link_failure:'Enlace caiu',link_recovery:'Enlace voltou',traffic_surge:'Pico de tráfego',latency_spike:'Pico de latência'};
+fetch('/api/results').then(r=>{if(!r.ok)throw 0;return r.json()}).then(load).catch(()=>{$('#loadmsg').hidden=false});
+$('#file').onchange=e=>{const fr=new FileReader();fr.onload=()=>load(JSON.parse(fr.result));fr.readAsText(e.target.files[0])};
+function seg(el,items,cur,cb){el.innerHTML=items.map(([k,l])=>`<button class="btn sm ${String(k)===String(cur)?'on':''}" data-k="${k}">${l}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;cb(b.dataset.k);seg(el,items,b.dataset.k,cb)}}
+function load(d){
+  R=d;$('#loadmsg').hidden=true;R.meta.surges=R.meta.surges.map(x=>Number(x).toFixed(1));S.surge=R.meta.surges[R.meta.surges.length-1];
+  seg($('#surgeSeg'),R.meta.surges.map(s=>[s,'×'+s+(Number(s)>=2?' · forte':' · moderado')]),S.surge,k=>{S.surge=k;resAll()});
+  seg($('#metSeg'),Object.entries(METRICS).map(([k,m])=>[k,m.t]),S.met,k=>{S.met=k;bars()});
+  const T=R.timeseries.dijkstra.J.length;$('#tick').max=T-1;
+  $('#tick').oninput=e=>{S.tick=+e.target.value;tickView()};
+  $('#playBtn').onclick=()=>{if(S.timer){clearInterval(S.timer);S.timer=null;$('#playBtn').textContent='▶';return}
+    if(S.tick>=T-1)S.tick=0;$('#playBtn').textContent='⏸';
+    S.timer=setInterval(()=>{S.tick++;if(S.tick>=T-1){clearInterval(S.timer);S.timer=null;$('#playBtn').textContent='▶'}$('#tick').value=S.tick;tickView()},260)};
+  $('#tsChips').innerHTML='<span class="lab">Mostrar</span>'+R.meta.routers.filter(n=>n!=='static').map(n=>`<button class="btn sm ${S.tsOn.has(n)?'on':''}" data-n="${n}" style="border-color:${COL[n]}">${NAMES[n]}</button>`).join('');
+  $('#tsChips').onclick=e=>{const b=e.target.closest('button');if(!b)return;const n=b.dataset.n;S.tsOn.has(n)?S.tsOn.delete(n):S.tsOn.add(n);b.classList.toggle('on');series()};
+  $('#tlist').innerHTML=R.timeseries.events.map(e=>`<div class="ti" data-t="${e.tick}"><b>t=${e.tick}</b><span>${EVT[e.kind]}${e.a?' · '+e.a+(e.b?'–'+e.b:''):''}</span></div>`).join('');
+  resAll();series();
+}
+function resAll(){kpis();cards();bars();}
+const g=(n,k)=>R.summary[S.surge][n][k].mean;
+function countUp(el,to,d,suf,pre){if(REDUCE){el.textContent=pre+f(to,d)+suf;return}const t0=performance.now();(function s(n){const k=Math.min(1,(n-t0)/1100),e=1-Math.pow(1-k,3);el.textContent=pre+f(to*e,d)+suf;if(k<1)requestAnimationFrame(s)})(t0)}
+function kpis(){
+  const bl=g('dijkstra','lat_p95'),best=Math.min(g('aco','lat_p95'),g('memetic','lat_p95'));
+  const items=[['',(1-best/bl)*100,0,'%','−','menos atraso (p95) com ACO ou Memético que o Dijkstra simples'],['gr',g('aco','goodput')*100,1,'%','','dos dados entregues, mesmo com falhas e pico de tráfego'],
+   ['vi',R.meta.seeds,0,'','','simulações independentes por cenário, para resultados confiáveis'],['or',7,0,'','','vulnerabilidades de segurança encontradas e corrigidas']];
+  $('#kp').innerHTML=items.map(([c,v,d,s,p,t],i)=>`<div class="pn kpi"><div class="v ${c}" id="kv${i}">0</div><div class="t">${t}</div></div>`).join('');
+  items.forEach(([c,v,d,s,p],i)=>countUp($('#kv'+i),v,d,s,p));
+}
+function cards(){
+  const names=R.meta.routers;const lat=names.map(n=>g(n,'lat_p95')),gp=names.map(n=>g(n,'goodput')),cm=names.map(n=>g(n,'compute_ms'));
+  const mxL=Math.max(...lat),mxC=Math.max(...cm);
+  const bestL=names[lat.indexOf(Math.min(...lat.filter((_,i)=>names[i]!=='static')))],fast=names[cm.indexOf(Math.min(...cm.filter((_,i)=>names[i]!=='static')))];
+  $('#rtCards').innerHTML=names.map(n=>{const bd=[];if(n===bestL)bd.push('MAIS RÁPIDO NA REDE');if(n===fast)bd.push('DECIDE MAIS RÁPIDO');if(n==='static')bd.push('REFERÊNCIA');
+    return `<div class="pn rt ${MODE_OF[n]===SIM.mode?'sel':''}" data-n="${n}" title="Clique para ver este tipo de roteador na rede ao vivo"><div class="hd"><span class="sw2" style="background:${COL[n]};box-shadow:0 0 10px ${COL[n]}"></span>${NAMES[n]}</div><p>${DESC[n]}</p>
+    <div class="mb"><span>Atraso</span><div class="tk"><i style="width:${g(n,'lat_p95')/mxL*100}%;background:${COL[n]}"></i></div><b>${f(g(n,'lat_p95'),0)} ms</b></div>
+    <div class="mb"><span>Entrega</span><div class="tk"><i style="width:${g(n,'goodput')*100}%;background:${COL[n]}"></i></div><b>${f(g(n,'goodput')*100,0)}%</b></div>
+    <div class="mb"><span>Decisão</span><div class="tk"><i style="width:${Math.max(2,g(n,'compute_ms')/mxC*100)}%;background:${COL[n]}"></i></div><b>${f(g(n,'compute_ms'),1)} ms</b></div>
+    ${bd.map(b=>`<span class="badge">${b}</span>`).join('')}</div>`}).join('');
+  $$('#rtCards .rt').forEach(c=>c.onclick=()=>{setMode(MODE_OF[c.dataset.n]);document.getElementById('rede').scrollIntoView()});
+}
+function mv(n,k){const m=g(n,k);return METRICS[k].pct?m*100:m}
+function bars(){
+  const k=S.met,M=METRICS[k],names=R.meta.routers;$('#metHelp').textContent=M.h;
+  const vals=names.map(n=>mv(n,k)),cand=vals.filter((_,i)=>names[i]!=='static'),bestv=M.low?Math.min(...cand):Math.max(...cand),mx=Math.max(...vals);
+  $('#bars').innerHTML=names.map((n,i)=>{const v=vals[i];return `<div class="bar ${n!=='static'&&Math.abs(v-bestv)<1e-9?'best':''}"><div><span style="color:${COL[n]}">■</span> ${NAMES[n]}</div>
+   <div class="tk"><div class="fill" style="width:${Math.max(2,v/mx*100)}%;background:${COL[n]};color:${COL[n]}"></div></div><div class="val">${f(v,M.d)}${M.u}</div></div>`}).join('');
+  const res=g('dijkstra_residual','lat_p95'),bl=g('dijkstra','lat_p95'),best=Math.min(g('aco','lat_p95'),g('memetic','lat_p95'));
+  $('#verdict').innerHTML=`<b>Em resumo (pico ×${S.surge}):</b> ACO e Memético cortam ${f((1-best/bl)*100,0)}% do atraso em relação ao Dijkstra simples. Contra o Dijkstra que já enxerga a capacidade, o ganho cai para ${f((1-best/res)*100,0)}% e eles levam ${f(g('aco','compute_ms')/g('dijkstra_residual','compute_ms'),0)}× mais tempo para decidir. Ou seja: a inteligência extra compensa quando a rede está congestionada.`;
+}
+function series(){
+  const ts=R.timeseries,svg=$('#ts'),W=620,H=250,P={l:44,r:8,t:10,b:22},T=ts.dijkstra.lat.length,on=[...S.tsOn];if(!on.length){svg.innerHTML='';return}
+  const all=on.flatMap(n=>ts[n].lat);let lo=Math.min(...all),hi=Math.max(...all);const pd=(hi-lo)*.1;lo-=pd;hi+=pd;
+  const x=i=>P.l+(W-P.l-P.r)*i/(T-1),y=v=>P.t+(H-P.t-P.b)*(1-(v-lo)/(hi-lo));let s='';
+  for(let q=0;q<=4;q++){const v=lo+(hi-lo)*q/4,yy=y(v);s+=`<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="rgba(56,189,248,.15)"/><text x="${P.l-6}" y="${yy+4}" text-anchor="end" fill="#7f9bb3" font-size="11">${v.toFixed(0)}</text>`}
+  ts.events.forEach(e=>{s+=`<line x1="${x(e.tick)}" x2="${x(e.tick)}" y1="${P.t}" y2="${H-P.b}" stroke="#7f9bb3" stroke-dasharray="3 4" opacity=".45"><title>t=${e.tick}: ${EVT[e.kind]}</title></line>`});
+  for(const n of on)s+=`<polyline fill="none" stroke="${COL[n]}" stroke-width="2.2" style="filter:drop-shadow(0 0 4px ${COL[n]})" points="${ts[n].lat.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>`;
+  s+=`<line id="cur" y1="${P.t}" y2="${H-P.b}" stroke="#fff" stroke-width="1.5"/>`;svg.innerHTML=s;svg.dataset.x0=P.l;svg.dataset.w=W-P.l-P.r;tickView();
+}
+function tickView(){
+  const T=R.timeseries.dijkstra.lat.length,tk=S.tick,c=$('#cur');if(c){const xx=(+$('#ts').dataset.x0)+(+$('#ts').dataset.w)*tk/(T-1);c.setAttribute('x1',xx);c.setAttribute('x2',xx)}
+  $('#tickLab').textContent='tick '+tk;$$('#tlist .ti').forEach(el=>el.classList.toggle('done',+el.dataset.t<=tk));
+}
+
+/* ================= MODO APRESENTAÇÃO ================= */
+const SCENES=[['inicio','Bem-vindo ao P.U.R.A: uma rede que escolhe sozinha o melhor caminho para proteger o ar que respiramos.'],
+ ['como','Um sensor mede o ar, a rede leva a informação, o gateway protege e o ventilador age.'],
+ ['rede','Aqui a rede está viva. Vê as falhas e os ataques? O roteador inteligente desvia de tudo em tempo real.'],
+ ['ar','O sensor ESP32 mede CO₂, temperatura e umidade e liga o ventilador quando o ar piora.'],
+ ['algoritmos','Cinco algoritmos foram testados. Os inteligentes entregam mais dados, com menos atraso.'],
+ ['seguranca','Cada mensagem é assinada. Falsificações e repetições são barradas, e atacantes são bloqueados.'],
+ ['tempo','Este é o experimento completo: falhas, picos de tráfego e como cada algoritmo reagiu.']];
+let pres=null,pi=0;
+function presGo(){const [id,t]=SCENES[pi%SCENES.length];document.getElementById(id).scrollIntoView({behavior:'smooth'});const c=$('#cap');c.textContent=t;c.classList.add('show');
+  if(id==='tempo'&&!S.timer&&R){S.tick=0;$('#tick').value=0;$('#playBtn').click()}pi++}
+function presStop(){clearInterval(pres);pres=null;$('#cap').classList.remove('show');$('#presBtn').textContent='▶ Modo apresentação'}
+$('#presBtn').onclick=()=>{if(pres){presStop();return}pi=0;$('#presBtn').textContent='■ Parar apresentação';presGo();pres=setInterval(presGo,9000)};
+addEventListener('keydown',e=>{if(e.key==='Escape'&&pres)presStop()});
+
+/* ================= início ================= */
+setMode('smart',true);feed('P.U.R.A iniciado: monitorando a rede','info','INFO');
+poll();
+</script>
+</body>
+</html>
